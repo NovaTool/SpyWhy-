@@ -26,7 +26,8 @@ fun DashboardScreen(
     onNavigateToCoinDetail: (String) -> Unit,
     onNavigateToHWMode: () -> Unit,
     onNavigateToMarket: () -> Unit,
-    onNavigateToPortfolio: () -> Unit
+    onNavigateToPortfolio: () -> Unit,
+    isWatchOnly: Boolean = false
 ) {
     var totalBalance by remember { mutableStateOf("$0.00") }
 
@@ -37,8 +38,10 @@ fun DashboardScreen(
                     Text("SpyWhy", color = SpyWhyColors.AccentOrange, fontWeight = FontWeight.Bold)
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToHWMode) {
-                        Icon(Icons.Default.Usb, "HW Mode", tint = SpyWhyColors.TextSecondary)
+                    if (!isWatchOnly) {
+                        IconButton(onClick = onNavigateToHWMode) {
+                            Icon(Icons.Default.Usb, "HW Mode", tint = SpyWhyColors.TextSecondary)
+                        }
                     }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, "Settings", tint = SpyWhyColors.TextSecondary)
@@ -91,17 +94,25 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    DashboardAction(Icons.Default.ArrowUpward, "Send", SpyWhyColors.AccentRed) { onNavigateToSend() }
+                    if (!isWatchOnly) {
+                        DashboardAction(Icons.Default.ArrowUpward, "Send", SpyWhyColors.AccentRed) { onNavigateToSend() }
+                    }
                     DashboardAction(Icons.Default.ArrowDownward, "Receive", SpyWhyColors.AccentGreen) { onNavigateToReceive() }
-                    DashboardAction(Icons.Default.SwapHoriz, "Swap", SpyWhyColors.AccentOrange) { }
+                    if (!isWatchOnly) {
+                        DashboardAction(Icons.Default.SwapHoriz, "Swap", SpyWhyColors.AccentOrange) { }
+                    }
                     DashboardAction(Icons.Default.ShowChart, "Market", SpyWhyColors.TextPrimary) { onNavigateToMarket() }
                 }
             }
 
             // Quick links
             item {
+                val quickLinks = if (isWatchOnly)
+                    listOf("Portfolio", "NFTs", "Alerts")
+                else
+                    listOf("Portfolio", "NFTs", "HW Mode", "Alerts")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(listOf("Portfolio", "NFTs", "HW Mode", "Alerts")) { label ->
+                    items(quickLinks) { label ->
                         AssistChip(
                             onClick = {
                                 when (label) {

@@ -18,7 +18,9 @@ sealed class Screen(val route: String) {
 
     // ── Main ────────────────────────────────────────────────────────────
     sealed class Main(route: String) : Screen(route) {
-        data object Dashboard : Main("main/dashboard")
+        data object Dashboard : Main("main/dashboard?watchOnly={watchOnly}") {
+            fun createRoute(watchOnly: Boolean = false): String = "main/dashboard?watchOnly=$watchOnly"
+        }
         data object WalletList : Main("main/wallet_list")
         data object CoinDetail : Main("main/coin_detail/{coinId}") {
             fun createRoute(coinId: String): String = "main/coin_detail/$coinId"

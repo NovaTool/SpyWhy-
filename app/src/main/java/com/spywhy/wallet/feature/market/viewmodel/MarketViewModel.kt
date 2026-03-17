@@ -56,6 +56,7 @@ class MarketViewModel @Inject constructor(
         loadPrices()
         loadTopMovers()
         loadAlerts()
+        refresh()
     }
 
     private fun loadPrices() {

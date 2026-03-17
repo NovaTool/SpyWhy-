@@ -1,5 +1,9 @@
 package com.spywhy.wallet.core.di
 
+import com.spywhy.wallet.core.database.dao.PriceAlertDao
+import com.spywhy.wallet.core.database.dao.PriceCacheDao
+import com.spywhy.wallet.core.network.api.CoinGeckoApi
+import com.spywhy.wallet.data.repository.MarketRepositoryImpl
 import com.spywhy.wallet.domain.model.Blockchain
 import com.spywhy.wallet.domain.model.PriceData
 import com.spywhy.wallet.domain.model.SwapQuote
@@ -62,17 +66,9 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideMarketRepository(): MarketRepository = object : MarketRepository {
-        override fun getPrices(): Flow<List<PriceData>> = flowOf(emptyList())
-        override fun getPriceForCoin(coinId: String): Flow<PriceData?> = flowOf(null)
-        override suspend fun refreshPrices() {}
-        override suspend fun getMarketChart(coinId: String, days: Int): List<Pair<Long, Double>> = emptyList()
-        override suspend fun getTopGainers(limit: Int): List<PriceData> = emptyList()
-        override suspend fun getTopLosers(limit: Int): List<PriceData> = emptyList()
-        override suspend fun createPriceAlert(coinId: String, targetPrice: Double, above: Boolean) {}
-        override suspend fun deletePriceAlert(alertId: Long) {}
-        override fun getActivePriceAlerts(): Flow<List<PriceAlert>> = flowOf(emptyList())
-        override suspend fun getSwapQuotes(fromCoin: String, toCoin: String, amount: String): List<SwapQuote> = emptyList()
-        override suspend fun executeDEXSwap(fromToken: String, toToken: String, amount: String, fromAddress: String): String = ""
-    }
+    fun provideMarketRepository(
+        coinGeckoApi: CoinGeckoApi,
+        priceCacheDao: PriceCacheDao,
+        priceAlertDao: PriceAlertDao
+    ): MarketRepository = MarketRepositoryImpl(coinGeckoApi, priceCacheDao, priceAlertDao)
 }

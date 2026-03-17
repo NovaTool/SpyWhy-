@@ -9,13 +9,26 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -83,10 +96,13 @@ interface SecurityManager {
 }
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var securityManager: SecurityManager
+
+    private var isLocked by mutableStateOf(false)
+    private var biometricEnabled by mutableStateOf(true)
 
     // ── Lifecycle ───────────────────────────────────────────────────────
 
@@ -104,11 +120,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             SpyWhyTheme {
                 val navController = rememberNavController()
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SpyWhyNavHost(
-                        navController = navController,
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = MaterialTheme.colorScheme.background
+                ) { innerPadding ->
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        SpyWhyNavHost(
+                            navController = navController,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                        if (isLocked) {
+                            BiometricLockOverlay(
+                                onUnlockRequest = { promptBiometric() }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -122,12 +148,48 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (securityManager.shouldLock()) {
-            Timber.d("Auto-lock threshold exceeded – navigating to PIN entry")
-            // In a full build this would navigate to a LockScreen or SetPin route.
-            // For now we simply log; the nav integration will be wired when the
-            // lock-screen composable is implemented.
+        if (securityManager.shouldLock() && biometricEnabled) {
+            Timber.d("Auto-lock threshold exceeded – requesting biometric")
+            isLocked = true
+            promptBiometric()
         }
+    }
+
+    private fun promptBiometric() {
+        val executor = androidx.core.content.ContextCompat.getMainExecutor(this)
+        val biometricPrompt = androidx.biometric.BiometricPrompt(
+            this,
+            executor,
+            object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(
+                    result: androidx.biometric.BiometricPrompt.AuthenticationResult
+                ) {
+                    super.onAuthenticationSucceeded(result)
+                    isLocked = false
+                    Timber.d("Biometric unlock succeeded")
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    Timber.w("Biometric error: $errString")
+                    // Keep locked – user can tap to retry
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    Timber.w("Biometric auth failed – try again")
+                }
+            }
+        )
+
+        val promptInfo = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+            .setTitle("SpyWhy Wallet")
+            .setSubtitle("Authenticate to unlock")
+            .setNegativeButtonText("Cancel")
+            .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            .build()
+
+        biometricPrompt.authenticate(promptInfo)
     }
 }
 
@@ -163,7 +225,7 @@ fun SpyWhyNavHost(
                     navController.navigate(Screen.Onboarding.ImportSeed.route)
                 },
                 onWatchOnly = {
-                    navController.navigate(Screen.Main.Dashboard.route) {
+                    navController.navigate(Screen.Main.Dashboard.createRoute(watchOnly = true)) {
                         popUpTo(Screen.Onboarding.Welcome.route) { inclusive = true }
                     }
                 }
@@ -201,12 +263,12 @@ fun SpyWhyNavHost(
             BiometricSetupScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onSetupComplete = {
-                    navController.navigate(Screen.Main.Dashboard.route) {
+                    navController.navigate(Screen.Main.Dashboard.createRoute()) {
                         popUpTo(Screen.Onboarding.Splash.route) { inclusive = true }
                     }
                 },
                 onSkip = {
-                    navController.navigate(Screen.Main.Dashboard.route) {
+                    navController.navigate(Screen.Main.Dashboard.createRoute()) {
                         popUpTo(Screen.Onboarding.Splash.route) { inclusive = true }
                     }
                 }
@@ -214,7 +276,11 @@ fun SpyWhyNavHost(
         }
 
         // ── Main ────────────────────────────────────────────────────────
-        composable(Screen.Main.Dashboard.route) {
+        composable(
+            route = Screen.Main.Dashboard.route,
+            arguments = listOf(navArgument("watchOnly") { type = NavType.BoolType; defaultValue = false })
+        ) { backStackEntry ->
+            val watchOnly = backStackEntry.arguments?.getBoolean("watchOnly") ?: false
             DashboardScreen(
                 onNavigateToSend = { navController.navigate(Screen.Main.Send.createRoute("BTC")) },
                 onNavigateToReceive = { navController.navigate(Screen.Main.Receive.createRoute("BTC")) },
@@ -222,7 +288,8 @@ fun SpyWhyNavHost(
                 onNavigateToCoinDetail = { coinId -> navController.navigate(Screen.Main.CoinDetail.createRoute(coinId)) },
                 onNavigateToHWMode = { navController.navigate(Screen.HWMode.HWModeHome.route) },
                 onNavigateToMarket = { navController.navigate(Screen.Market.MarketOverview.route) },
-                onNavigateToPortfolio = { navController.navigate(Screen.Portfolio.route) }
+                onNavigateToPortfolio = { navController.navigate(Screen.Portfolio.route) },
+                isWatchOnly = watchOnly
             )
         }
         composable(Screen.Main.WalletList.route) {
@@ -230,7 +297,7 @@ fun SpyWhyNavHost(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToCreateWallet = { navController.navigate(Screen.Onboarding.CreateWallet.route) },
                 onNavigateToImportWallet = { navController.navigate(Screen.Onboarding.ImportSeed.route) },
-                onWalletSelected = { walletId -> navController.navigate(Screen.Main.Dashboard.route) }
+                onWalletSelected = { walletId -> navController.navigate(Screen.Main.Dashboard.createRoute()) }
             )
         }
         composable(
@@ -276,7 +343,7 @@ fun SpyWhyNavHost(
                 onNavigateBack = { navController.popBackStack() },
                 onBiometricAuth = { onSuccess -> onSuccess() },
                 onDone = {
-                    navController.navigate(Screen.Main.Dashboard.route) {
+                    navController.navigate(Screen.Main.Dashboard.createRoute()) {
                         popUpTo(Screen.Main.Dashboard.route) { inclusive = true }
                     }
                 }
@@ -489,11 +556,53 @@ fun SpyWhyNavHost(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onSendAll = {
-                    navController.navigate(Screen.Main.Dashboard.route) {
+                    navController.navigate(Screen.Main.Dashboard.createRoute()) {
                         popUpTo(Screen.Main.Dashboard.route) { inclusive = true }
                     }
                 }
             )
+        }
+    }
+}
+
+// ── Biometric lock overlay ───────────────────────────────────────────────
+
+@Composable
+fun BiometricLockOverlay(onUnlockRequest: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Lock,
+                contentDescription = "Locked",
+                tint = com.spywhy.wallet.core.util.SpyWhyColors.AccentOrange,
+                modifier = Modifier.size(64.dp)
+            )
+            Text(
+                text = "Wallet Locked",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = "Tap to unlock with fingerprint",
+                style = MaterialTheme.typography.bodyMedium,
+                color = com.spywhy.wallet.core.util.SpyWhyColors.TextSecondary,
+            )
+            OutlinedButton(
+                onClick = onUnlockRequest,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = com.spywhy.wallet.core.util.SpyWhyColors.AccentOrange
+                )
+            ) {
+                Text("Unlock")
+            }
         }
     }
 }
