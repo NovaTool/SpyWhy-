@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -24,6 +25,43 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.spywhy.wallet.core.util.Screen
 import com.spywhy.wallet.core.util.SpyWhyTheme
+import com.spywhy.wallet.feature.exchange.DEXSwapScreen
+import com.spywhy.wallet.feature.exchange.FiatConverterScreen
+import com.spywhy.wallet.feature.exchange.SwapComparatorScreen
+import com.spywhy.wallet.feature.history.MempoolViewerScreen
+import com.spywhy.wallet.feature.history.TransactionListScreen
+import com.spywhy.wallet.feature.hwmode.DisplaySignedQRScreen
+import com.spywhy.wallet.feature.hwmode.HWModeScreen
+import com.spywhy.wallet.feature.hwmode.PCConnectionScreen
+import com.spywhy.wallet.feature.hwmode.ReviewSignScreen
+import com.spywhy.wallet.feature.hwmode.ScanTxQRScreen
+import com.spywhy.wallet.feature.market.AIAnalysisScreen
+import com.spywhy.wallet.feature.market.CoinChartScreen
+import com.spywhy.wallet.feature.market.MarketOverviewScreen
+import com.spywhy.wallet.feature.market.PriceAlertScreen
+import com.spywhy.wallet.feature.nft.NFTGalleryScreen
+import com.spywhy.wallet.feature.onboarding.BiometricSetupScreen
+import com.spywhy.wallet.feature.onboarding.CreateWalletScreen
+import com.spywhy.wallet.feature.onboarding.ImportSeedScreen
+import com.spywhy.wallet.feature.onboarding.SetPinScreen
+import com.spywhy.wallet.feature.onboarding.SplashScreen
+import com.spywhy.wallet.feature.onboarding.WelcomeScreen
+import com.spywhy.wallet.feature.portfolio.PortfolioScreen
+import com.spywhy.wallet.feature.receive.ReceiveScreen
+import com.spywhy.wallet.feature.send.BatchSendScreen
+import com.spywhy.wallet.feature.send.CoinControlScreen
+import com.spywhy.wallet.feature.send.ConfirmTxScreen
+import com.spywhy.wallet.feature.send.FeeSelectionScreen
+import com.spywhy.wallet.feature.send.SendScreen
+import com.spywhy.wallet.feature.settings.BackupScreen
+import com.spywhy.wallet.feature.settings.NodeSettingsScreen
+import com.spywhy.wallet.feature.settings.SecuritySettingsScreen
+import com.spywhy.wallet.feature.settings.SettingsScreen
+import com.spywhy.wallet.feature.stealth.StealthWalletScreen
+import com.spywhy.wallet.feature.wallet.AddressScreen
+import com.spywhy.wallet.feature.wallet.CoinDetailScreen
+import com.spywhy.wallet.feature.wallet.DashboardScreen
+import com.spywhy.wallet.feature.wallet.WalletListScreen
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -108,7 +146,7 @@ fun SpyWhyNavHost(
 
         // ── Onboarding ──────────────────────────────────────────────────
         composable(Screen.Onboarding.Splash.route) {
-            com.spywhy.wallet.feature.onboarding.SplashScreen(
+            SplashScreen(
                 onInitComplete = {
                     navController.navigate(Screen.Onboarding.Welcome.route) {
                         popUpTo(Screen.Onboarding.Splash.route) { inclusive = true }
@@ -117,7 +155,7 @@ fun SpyWhyNavHost(
             )
         }
         composable(Screen.Onboarding.Welcome.route) {
-            com.spywhy.wallet.feature.onboarding.WelcomeScreen(
+            WelcomeScreen(
                 onCreateWallet = {
                     navController.navigate(Screen.Onboarding.CreateWallet.route)
                 },
@@ -125,159 +163,342 @@ fun SpyWhyNavHost(
                     navController.navigate(Screen.Onboarding.ImportSeed.route)
                 },
                 onWatchOnly = {
-                    navController.navigate(Screen.Main.Dashboard.route)
+                    navController.navigate(Screen.Main.Dashboard.route) {
+                        popUpTo(Screen.Onboarding.Welcome.route) { inclusive = true }
+                    }
                 }
             )
         }
         composable(Screen.Onboarding.CreateWallet.route) {
-            PlaceholderScreen("Create Wallet")
+            CreateWalletScreen(
+                onBack = { navController.popBackStack() },
+                onWalletCreated = {
+                    navController.navigate(Screen.Onboarding.SetPin.route) {
+                        popUpTo(Screen.Onboarding.Welcome.route)
+                    }
+                }
+            )
         }
         composable(Screen.Onboarding.ImportSeed.route) {
-            PlaceholderScreen("Import Seed")
+            ImportSeedScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onImportComplete = {
+                    navController.navigate(Screen.Onboarding.SetPin.route) {
+                        popUpTo(Screen.Onboarding.Welcome.route)
+                    }
+                }
+            )
         }
         composable(Screen.Onboarding.SetPin.route) {
-            PlaceholderScreen("Set PIN")
+            SetPinScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onPinSet = {
+                    navController.navigate(Screen.Onboarding.BiometricSetup.route)
+                }
+            )
         }
         composable(Screen.Onboarding.BiometricSetup.route) {
-            PlaceholderScreen("Biometric Setup")
+            BiometricSetupScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onSetupComplete = {
+                    navController.navigate(Screen.Main.Dashboard.route) {
+                        popUpTo(Screen.Onboarding.Splash.route) { inclusive = true }
+                    }
+                },
+                onSkip = {
+                    navController.navigate(Screen.Main.Dashboard.route) {
+                        popUpTo(Screen.Onboarding.Splash.route) { inclusive = true }
+                    }
+                }
+            )
         }
 
         // ── Main ────────────────────────────────────────────────────────
         composable(Screen.Main.Dashboard.route) {
-            PlaceholderScreen("Dashboard")
+            DashboardScreen(
+                onNavigateToSend = { navController.navigate(Screen.Main.Send.createRoute("BTC")) },
+                onNavigateToReceive = { navController.navigate(Screen.Main.Receive.createRoute("BTC")) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.Root.route) },
+                onNavigateToCoinDetail = { coinId -> navController.navigate(Screen.Main.CoinDetail.createRoute(coinId)) },
+                onNavigateToHWMode = { navController.navigate(Screen.HWMode.HWModeHome.route) },
+                onNavigateToMarket = { navController.navigate(Screen.Market.MarketOverview.route) },
+                onNavigateToPortfolio = { navController.navigate(Screen.Portfolio.route) }
+            )
         }
         composable(Screen.Main.WalletList.route) {
-            PlaceholderScreen("Wallet List")
+            WalletListScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToCreateWallet = { navController.navigate(Screen.Onboarding.CreateWallet.route) },
+                onNavigateToImportWallet = { navController.navigate(Screen.Onboarding.ImportSeed.route) },
+                onWalletSelected = { walletId -> navController.navigate(Screen.Main.Dashboard.route) }
+            )
         }
         composable(
             route = Screen.Main.CoinDetail.route,
             arguments = listOf(navArgument("coinId") { type = NavType.StringType })
         ) { backStackEntry ->
             val coinId = backStackEntry.arguments?.getString("coinId").orEmpty()
-            PlaceholderScreen("Coin Detail: $coinId")
+            CoinDetailScreen(
+                coinTicker = coinId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSend = { navController.navigate(Screen.Main.Send.createRoute(coinId)) },
+                onNavigateToReceive = { navController.navigate(Screen.Main.Receive.createRoute(coinId)) }
+            )
         }
         composable(
             route = Screen.Main.Send.route,
             arguments = listOf(navArgument("coinId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val coinId = backStackEntry.arguments?.getString("coinId").orEmpty()
-            PlaceholderScreen("Send: $coinId")
+        ) {
+            val viewModel: com.spywhy.wallet.feature.send.viewmodel.SendViewModel = hiltViewModel()
+            SendScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onScanQr = { },
+                onSelectFee = { navController.navigate("send_fee") },
+                onCoinControl = { navController.navigate(Screen.CoinControl.createRoute("BTC")) },
+                onBatchSend = { navController.navigate(Screen.BatchSend.createRoute("BTC")) },
+                onReviewTransaction = { navController.navigate("send_confirm") }
+            )
+        }
+        composable("send_fee") {
+            val parentEntry = navController.getBackStackEntry(Screen.Main.Send.route)
+            val viewModel: com.spywhy.wallet.feature.send.viewmodel.SendViewModel = hiltViewModel(parentEntry)
+            FeeSelectionScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable("send_confirm") {
+            val parentEntry = navController.getBackStackEntry(Screen.Main.Send.route)
+            val viewModel: com.spywhy.wallet.feature.send.viewmodel.SendViewModel = hiltViewModel(parentEntry)
+            ConfirmTxScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onBiometricAuth = { onSuccess -> onSuccess() },
+                onDone = {
+                    navController.navigate(Screen.Main.Dashboard.route) {
+                        popUpTo(Screen.Main.Dashboard.route) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(
             route = Screen.Main.Receive.route,
             arguments = listOf(navArgument("coinId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val coinId = backStackEntry.arguments?.getString("coinId").orEmpty()
-            PlaceholderScreen("Receive: $coinId")
+        ) {
+            val viewModel: com.spywhy.wallet.feature.receive.viewmodel.ReceiveViewModel = hiltViewModel()
+            ReceiveScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(
             route = Screen.Main.TransactionHistory.route,
             arguments = listOf(navArgument("coinId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val coinId = backStackEntry.arguments?.getString("coinId").orEmpty()
-            PlaceholderScreen("Transaction History: $coinId")
+        ) {
+            val viewModel: com.spywhy.wallet.feature.history.viewmodel.TransactionListViewModel = hiltViewModel()
+            TransactionListScreen(
+                viewModel = viewModel,
+                walletAddress = "",
+                onNavigateBack = { navController.popBackStack() },
+                onTransactionClick = { txId ->
+                    navController.navigate(Screen.Main.TransactionDetail.createRoute(txId))
+                }
+            )
         }
         composable(
             route = Screen.Main.TransactionDetail.route,
             arguments = listOf(navArgument("txId") { type = NavType.StringType })
         ) { backStackEntry ->
             val txId = backStackEntry.arguments?.getString("txId").orEmpty()
-            PlaceholderScreen("Transaction Detail: $txId")
+            PlaceholderScreen("Transaction: $txId")
         }
 
         // ── HW Mode ────────────────────────────────────────────────────
         composable(Screen.HWMode.HWModeHome.route) {
-            PlaceholderScreen("HW Mode Home")
+            val viewModel: com.spywhy.wallet.feature.hwmode.viewmodel.HWModeViewModel = hiltViewModel()
+            HWModeScreen(
+                viewModel = viewModel,
+                onSignTransaction = { navController.navigate(Screen.HWMode.ScanTxQR.route) },
+                onShareAddress = { },
+                onPCConnection = { navController.navigate(Screen.HWMode.PCConnection.route) }
+            )
         }
         composable(Screen.HWMode.ScanTxQR.route) {
-            PlaceholderScreen("Scan TX QR")
+            val viewModel: com.spywhy.wallet.feature.hwmode.viewmodel.HWModeViewModel = hiltViewModel()
+            ScanTxQRScreen(
+                viewModel = viewModel,
+                onCancel = { navController.popBackStack() },
+                onScanned = { navController.navigate(Screen.HWMode.ReviewSign.route) }
+            )
         }
         composable(Screen.HWMode.ReviewSign.route) {
-            PlaceholderScreen("Review & Sign")
+            val viewModel: com.spywhy.wallet.feature.hwmode.viewmodel.HWModeViewModel = hiltViewModel()
+            ReviewSignScreen(
+                viewModel = viewModel,
+                onReject = { navController.popBackStack() },
+                onSign = { navController.navigate(Screen.HWMode.DisplaySignedQR.route) },
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.HWMode.DisplaySignedQR.route) {
-            PlaceholderScreen("Display Signed QR")
+            val viewModel: com.spywhy.wallet.feature.hwmode.viewmodel.HWModeViewModel = hiltViewModel()
+            DisplaySignedQRScreen(
+                viewModel = viewModel,
+                onDone = {
+                    navController.navigate(Screen.HWMode.HWModeHome.route) {
+                        popUpTo(Screen.HWMode.HWModeHome.route) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(Screen.HWMode.PCConnection.route) {
-            PlaceholderScreen("PC Connection")
+            val viewModel: com.spywhy.wallet.feature.hwmode.viewmodel.HWModeViewModel = hiltViewModel()
+            PCConnectionScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         // ── Market ──────────────────────────────────────────────────────
         composable(Screen.Market.MarketOverview.route) {
-            PlaceholderScreen("Market Overview")
+            val viewModel: com.spywhy.wallet.feature.market.viewmodel.MarketViewModel = hiltViewModel()
+            MarketOverviewScreen(
+                viewModel = viewModel,
+                onCoinClick = { coinId ->
+                    navController.navigate(Screen.Market.CoinChart.createRoute(coinId))
+                }
+            )
         }
         composable(
             route = Screen.Market.CoinChart.route,
             arguments = listOf(navArgument("coinId") { type = NavType.StringType })
         ) { backStackEntry ->
             val coinId = backStackEntry.arguments?.getString("coinId").orEmpty()
-            PlaceholderScreen("Coin Chart: $coinId")
+            val viewModel: com.spywhy.wallet.feature.market.viewmodel.MarketViewModel = hiltViewModel()
+            CoinChartScreen(
+                coinId = coinId,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onSetAlert = { navController.navigate(Screen.Market.PriceAlerts.route) }
+            )
         }
         composable(Screen.Market.PriceAlerts.route) {
-            PlaceholderScreen("Price Alerts")
+            val viewModel: com.spywhy.wallet.feature.market.viewmodel.MarketViewModel = hiltViewModel()
+            PriceAlertScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Market.AIAnalysis.route) {
-            PlaceholderScreen("AI Analysis")
+            val viewModel: com.spywhy.wallet.feature.market.viewmodel.AIAnalysisViewModel = hiltViewModel()
+            AIAnalysisScreen(
+                viewModel = viewModel,
+                availableCoins = listOf("BTC", "ETH", "SOL", "LTC", "XMR"),
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         // ── Exchange ────────────────────────────────────────────────────
         composable(Screen.Exchange.SwapComparator.route) {
-            PlaceholderScreen("Swap Comparator")
+            SwapComparatorScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Exchange.DEXSwap.route) {
-            PlaceholderScreen("DEX Swap")
+            DEXSwapScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Exchange.FiatConverter.route) {
-            PlaceholderScreen("Fiat Converter")
+            FiatConverterScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         // ── Standalone ─────────────────────────────────────────────────
         composable(Screen.Portfolio.route) {
-            PlaceholderScreen("Portfolio")
+            PortfolioScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.NFTGallery.route) {
-            PlaceholderScreen("NFT Gallery")
+            NFTGalleryScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         // ── Settings ───────────────────────────────────────────────────
         composable(Screen.Settings.Root.route) {
-            PlaceholderScreen("Settings")
+            SettingsScreen(
+                onNavigateToSecurity = { navController.navigate(Screen.Settings.SecuritySettings.route) },
+                onNavigateToNodes = { navController.navigate(Screen.Settings.NodeSettings.route) },
+                onNavigateToBackup = { navController.navigate(Screen.Settings.Backup.route) },
+                onNavigateToStealth = { navController.navigate(Screen.StealthWallet.route) },
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Settings.SecuritySettings.route) {
-            PlaceholderScreen("Security Settings")
+            SecuritySettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Settings.NodeSettings.route) {
-            PlaceholderScreen("Node Settings")
+            NodeSettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Settings.Backup.route) {
-            PlaceholderScreen("Backup")
+            BackupScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         // ── Advanced ───────────────────────────────────────────────────
         composable(Screen.StealthWallet.route) {
-            PlaceholderScreen("Stealth Wallet")
+            StealthWalletScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.MempoolViewer.route) {
-            PlaceholderScreen("Mempool Viewer")
+            val viewModel: com.spywhy.wallet.feature.history.viewmodel.TransactionListViewModel = hiltViewModel()
+            MempoolViewerScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onTransactionClick = { txId ->
+                    navController.navigate(Screen.Main.TransactionDetail.createRoute(txId))
+                }
+            )
         }
         composable(
             route = Screen.CoinControl.route,
             arguments = listOf(navArgument("coinId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val coinId = backStackEntry.arguments?.getString("coinId").orEmpty()
-            PlaceholderScreen("Coin Control: $coinId")
+        ) {
+            val viewModel: com.spywhy.wallet.feature.send.viewmodel.SendViewModel = hiltViewModel()
+            CoinControlScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(
             route = Screen.BatchSend.route,
             arguments = listOf(navArgument("coinId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val coinId = backStackEntry.arguments?.getString("coinId").orEmpty()
-            PlaceholderScreen("Batch Send: $coinId")
+        ) {
+            val viewModel: com.spywhy.wallet.feature.send.viewmodel.SendViewModel = hiltViewModel()
+            BatchSendScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onSendAll = {
+                    navController.navigate(Screen.Main.Dashboard.route) {
+                        popUpTo(Screen.Main.Dashboard.route) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
 
-// ── Placeholder composable used by every route until real UIs land ──────
+// ── Placeholder for screens requiring complex data passing ──────────────
 
 @Composable
 fun PlaceholderScreen(name: String) {
