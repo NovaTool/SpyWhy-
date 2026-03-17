@@ -13,18 +13,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spywhy.wallet.core.settings.SettingsPreferences
 import com.spywhy.wallet.core.util.SpyWhyColors
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
+    settingsPreferences: SettingsPreferences,
     onNavigateBack: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+
     var priceAlerts by remember { mutableStateOf(true) }
     var txNotifications by remember { mutableStateOf(true) }
     var dailySummary by remember { mutableStateOf(false) }
     var largeTransactions by remember { mutableStateOf(true) }
     var largeThreshold by remember { mutableStateOf("1000") }
+
+    LaunchedEffect(Unit) {
+        launch { settingsPreferences.priceAlerts.collect { priceAlerts = it } }
+        launch { settingsPreferences.txNotifications.collect { txNotifications = it } }
+        launch { settingsPreferences.dailySummary.collect { dailySummary = it } }
+        launch { settingsPreferences.largeTransactions.collect { largeTransactions = it } }
+        launch { settingsPreferences.largeThreshold.collect { largeThreshold = it } }
+    }
 
     Scaffold(
         topBar = {
@@ -55,7 +68,10 @@ fun NotificationsScreen(
                 subtitle = "Get notified when prices hit your targets",
                 icon = Icons.Default.TrendingUp,
                 checked = priceAlerts,
-                onCheckedChange = { priceAlerts = it }
+                onCheckedChange = {
+                    priceAlerts = it
+                    scope.launch { settingsPreferences.set(SettingsPreferences.PRICE_ALERTS, it) }
+                }
             )
 
             NotificationToggle(
@@ -63,7 +79,10 @@ fun NotificationsScreen(
                 subtitle = "Notify on incoming and outgoing transactions",
                 icon = Icons.Default.SwapVert,
                 checked = txNotifications,
-                onCheckedChange = { txNotifications = it }
+                onCheckedChange = {
+                    txNotifications = it
+                    scope.launch { settingsPreferences.set(SettingsPreferences.TX_NOTIFICATIONS, it) }
+                }
             )
 
             NotificationToggle(
@@ -71,7 +90,10 @@ fun NotificationsScreen(
                 subtitle = "Daily overview of your portfolio performance",
                 icon = Icons.Default.Assessment,
                 checked = dailySummary,
-                onCheckedChange = { dailySummary = it }
+                onCheckedChange = {
+                    dailySummary = it
+                    scope.launch { settingsPreferences.set(SettingsPreferences.DAILY_SUMMARY, it) }
+                }
             )
 
             Spacer(Modifier.height(16.dp))
@@ -82,7 +104,10 @@ fun NotificationsScreen(
                 subtitle = "Alert when transactions exceed threshold",
                 icon = Icons.Default.AccountBalanceWallet,
                 checked = largeTransactions,
-                onCheckedChange = { largeTransactions = it }
+                onCheckedChange = {
+                    largeTransactions = it
+                    scope.launch { settingsPreferences.set(SettingsPreferences.LARGE_TRANSACTIONS, it) }
+                }
             )
 
             if (largeTransactions) {
@@ -95,7 +120,11 @@ fun NotificationsScreen(
                         Spacer(Modifier.height(8.dp))
                         OutlinedTextField(
                             value = largeThreshold,
-                            onValueChange = { largeThreshold = it.filter { c -> c.isDigit() } },
+                            onValueChange = {
+                                val filtered = it.filter { c -> c.isDigit() }
+                                largeThreshold = filtered
+                                scope.launch { settingsPreferences.set(SettingsPreferences.LARGE_THRESHOLD, filtered) }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             prefix = { Text("$", color = SpyWhyColors.TextSecondary) },
                             singleLine = true,
@@ -113,7 +142,10 @@ fun NotificationsScreen(
                             listOf("100", "500", "1000", "5000").forEach { preset ->
                                 FilterChip(
                                     selected = largeThreshold == preset,
-                                    onClick = { largeThreshold = preset },
+                                    onClick = {
+                                        largeThreshold = preset
+                                        scope.launch { settingsPreferences.set(SettingsPreferences.LARGE_THRESHOLD, preset) }
+                                    },
                                     label = { Text("$$preset", fontSize = 12.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = SpyWhyColors.AccentOrange.copy(alpha = 0.2f),

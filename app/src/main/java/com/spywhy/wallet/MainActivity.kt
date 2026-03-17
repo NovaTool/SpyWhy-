@@ -124,6 +124,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var walletDao: WalletDao
 
+    @Inject
+    lateinit var settingsPreferences: com.spywhy.wallet.core.settings.SettingsPreferences
+
     private var isLocked by mutableStateOf(false)
     private var biometricEnabled by mutableStateOf(true)
     private var pendingUpdate by mutableStateOf<UpdateInfo?>(null)
@@ -605,12 +608,16 @@ fun SpyWhyNavHost(
             )
         }
         composable(Screen.Settings.SecuritySettings.route) {
+            val act = androidx.compose.ui.platform.LocalContext.current as MainActivity
             SecuritySettingsScreen(
+                settingsPreferences = act.settingsPreferences,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.Settings.NodeSettings.route) {
+            val act = androidx.compose.ui.platform.LocalContext.current as MainActivity
             NodeSettingsScreen(
+                settingsPreferences = act.settingsPreferences,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -630,17 +637,23 @@ fun SpyWhyNavHost(
             )
         }
         composable(Screen.Settings.DefaultCurrency.route) {
+            val act = androidx.compose.ui.platform.LocalContext.current as MainActivity
             DefaultCurrencyScreen(
+                settingsPreferences = act.settingsPreferences,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.Settings.Notifications.route) {
+            val act = androidx.compose.ui.platform.LocalContext.current as MainActivity
             NotificationsScreen(
+                settingsPreferences = act.settingsPreferences,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.Settings.Widgets.route) {
+            val act = androidx.compose.ui.platform.LocalContext.current as MainActivity
             WidgetsScreen(
+                settingsPreferences = act.settingsPreferences,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

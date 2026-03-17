@@ -13,16 +13,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spywhy.wallet.core.settings.SettingsPreferences
 import com.spywhy.wallet.core.util.SpyWhyColors
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WidgetsScreen(
+    settingsPreferences: SettingsPreferences,
     onNavigateBack: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+
     var portfolioWidget by remember { mutableStateOf(false) }
     var priceTickerWidget by remember { mutableStateOf(false) }
     var quickSendWidget by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        launch { settingsPreferences.portfolioWidget.collect { portfolioWidget = it } }
+        launch { settingsPreferences.priceTickerWidget.collect { priceTickerWidget = it } }
+        launch { settingsPreferences.quickSendWidget.collect { quickSendWidget = it } }
+    }
 
     Scaffold(
         topBar = {
@@ -69,7 +80,10 @@ fun WidgetsScreen(
                 description = "Shows your total portfolio value on the home screen",
                 icon = Icons.Default.AccountBalanceWallet,
                 enabled = portfolioWidget,
-                onToggle = { portfolioWidget = it }
+                onToggle = {
+                    portfolioWidget = it
+                    scope.launch { settingsPreferences.set(SettingsPreferences.PORTFOLIO_WIDGET, it) }
+                }
             )
 
             WidgetCard(
@@ -77,7 +91,10 @@ fun WidgetsScreen(
                 description = "Live price updates for your favorite coins",
                 icon = Icons.Default.ShowChart,
                 enabled = priceTickerWidget,
-                onToggle = { priceTickerWidget = it }
+                onToggle = {
+                    priceTickerWidget = it
+                    scope.launch { settingsPreferences.set(SettingsPreferences.PRICE_TICKER_WIDGET, it) }
+                }
             )
 
             WidgetCard(
@@ -85,7 +102,10 @@ fun WidgetsScreen(
                 description = "One-tap send to your favorite contacts",
                 icon = Icons.Default.Send,
                 enabled = quickSendWidget,
-                onToggle = { quickSendWidget = it }
+                onToggle = {
+                    quickSendWidget = it
+                    scope.launch { settingsPreferences.set(SettingsPreferences.QUICK_SEND_WIDGET, it) }
+                }
             )
 
             Spacer(Modifier.height(16.dp))

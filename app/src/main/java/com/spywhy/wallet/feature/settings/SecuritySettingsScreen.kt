@@ -13,19 +13,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spywhy.wallet.core.settings.SettingsPreferences
 import com.spywhy.wallet.core.util.SpyWhyColors
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecuritySettingsScreen(
+    settingsPreferences: SettingsPreferences,
     onNavigateBack: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+
     var biometricEnabled by remember { mutableStateOf(true) }
     var screenshotProtection by remember { mutableStateOf(true) }
     var rootDetection by remember { mutableStateOf(true) }
     var autoLockTimeout by remember { mutableStateOf("60") }
     var maxPinAttempts by remember { mutableStateOf("10") }
     var clipboardClearDelay by remember { mutableStateOf("30") }
+
+    // Load saved values
+    LaunchedEffect(Unit) {
+        launch { settingsPreferences.biometricEnabled.collect { biometricEnabled = it } }
+        launch { settingsPreferences.screenshotProtection.collect { screenshotProtection = it } }
+        launch { settingsPreferences.rootDetection.collect { rootDetection = it } }
+        launch { settingsPreferences.autoLockTimeout.collect { autoLockTimeout = it } }
+        launch { settingsPreferences.maxPinAttempts.collect { maxPinAttempts = it } }
+        launch { settingsPreferences.clipboardClearDelay.collect { clipboardClearDelay = it } }
+    }
 
     Scaffold(
         topBar = {
@@ -80,7 +95,10 @@ fun SecuritySettingsScreen(
                         }
                         Switch(
                             checked = biometricEnabled,
-                            onCheckedChange = { biometricEnabled = it },
+                            onCheckedChange = {
+                                biometricEnabled = it
+                                scope.launch { settingsPreferences.set(SettingsPreferences.BIOMETRIC_ENABLED, it) }
+                            },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = SpyWhyColors.AccentGreen,
                                 checkedTrackColor = SpyWhyColors.AccentGreen.copy(alpha = 0.3f)
@@ -104,7 +122,10 @@ fun SecuritySettingsScreen(
                         listOf("15", "30", "60", "120", "300").forEach { timeout ->
                             FilterChip(
                                 selected = autoLockTimeout == timeout,
-                                onClick = { autoLockTimeout = timeout },
+                                onClick = {
+                                    autoLockTimeout = timeout
+                                    scope.launch { settingsPreferences.set(SettingsPreferences.AUTO_LOCK_TIMEOUT, timeout) }
+                                },
                                 label = { Text("${timeout}s", fontSize = 12.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = SpyWhyColors.AccentGreen.copy(alpha = 0.2f),
@@ -120,7 +141,10 @@ fun SecuritySettingsScreen(
                         listOf("3", "5", "10", "20").forEach { attempts ->
                             FilterChip(
                                 selected = maxPinAttempts == attempts,
-                                onClick = { maxPinAttempts = attempts },
+                                onClick = {
+                                    maxPinAttempts = attempts
+                                    scope.launch { settingsPreferences.set(SettingsPreferences.MAX_PIN_ATTEMPTS, attempts) }
+                                },
                                 label = { Text(attempts, fontSize = 12.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = SpyWhyColors.AccentRed.copy(alpha = 0.2f),
@@ -151,7 +175,10 @@ fun SecuritySettingsScreen(
                         }
                         Switch(
                             checked = screenshotProtection,
-                            onCheckedChange = { screenshotProtection = it },
+                            onCheckedChange = {
+                                screenshotProtection = it
+                                scope.launch { settingsPreferences.set(SettingsPreferences.SCREENSHOT_PROTECTION, it) }
+                            },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = SpyWhyColors.AccentGreen,
                                 checkedTrackColor = SpyWhyColors.AccentGreen.copy(alpha = 0.3f)
@@ -170,7 +197,10 @@ fun SecuritySettingsScreen(
                         }
                         Switch(
                             checked = rootDetection,
-                            onCheckedChange = { rootDetection = it },
+                            onCheckedChange = {
+                                rootDetection = it
+                                scope.launch { settingsPreferences.set(SettingsPreferences.ROOT_DETECTION, it) }
+                            },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = SpyWhyColors.AccentGreen,
                                 checkedTrackColor = SpyWhyColors.AccentGreen.copy(alpha = 0.3f)
@@ -191,7 +221,10 @@ fun SecuritySettingsScreen(
                             listOf("15", "30", "60").forEach { delay ->
                                 FilterChip(
                                     selected = clipboardClearDelay == delay,
-                                    onClick = { clipboardClearDelay = delay },
+                                    onClick = {
+                                        clipboardClearDelay = delay
+                                        scope.launch { settingsPreferences.set(SettingsPreferences.CLIPBOARD_CLEAR_DELAY, delay) }
+                                    },
                                     label = { Text("${delay}s", fontSize = 11.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = SpyWhyColors.AccentGreen.copy(alpha = 0.2f),

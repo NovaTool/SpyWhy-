@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spywhy.wallet.core.settings.SettingsPreferences
 import com.spywhy.wallet.core.util.SpyWhyColors
+import kotlinx.coroutines.launch
 
 data class CurrencyOption(
     val code: String,
@@ -38,9 +40,15 @@ private val currencies = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DefaultCurrencyScreen(
+    settingsPreferences: SettingsPreferences,
     onNavigateBack: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     var selectedCurrency by remember { mutableStateOf("USD") }
+
+    LaunchedEffect(Unit) {
+        settingsPreferences.defaultCurrency.collect { selectedCurrency = it }
+    }
 
     Scaffold(
         topBar = {
@@ -76,7 +84,10 @@ fun DefaultCurrencyScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { selectedCurrency = currency.code },
+                        .clickable {
+                            selectedCurrency = currency.code
+                            scope.launch { settingsPreferences.set(SettingsPreferences.DEFAULT_CURRENCY, currency.code) }
+                        },
                     colors = CardDefaults.cardColors(
                         containerColor = if (isSelected) SpyWhyColors.AccentOrange.copy(alpha = 0.15f)
                         else SpyWhyColors.MediumGray

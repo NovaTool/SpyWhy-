@@ -13,19 +13,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spywhy.wallet.core.settings.SettingsPreferences
 import com.spywhy.wallet.core.util.SpyWhyColors
 import com.spywhy.wallet.core.util.Constants
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NodeSettingsScreen(
+    settingsPreferences: SettingsPreferences,
     onNavigateBack: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+
     var btcNode by remember { mutableStateOf(Constants.BTC_NODE_DEFAULT) }
     var ethNode by remember { mutableStateOf(Constants.ETH_NODE_DEFAULT) }
     var solNode by remember { mutableStateOf(Constants.SOL_NODE_DEFAULT) }
     var ltcNode by remember { mutableStateOf(Constants.LTC_NODE_DEFAULT) }
     var xmrNode by remember { mutableStateOf("node.moneroworld.com:18089") }
+
+    LaunchedEffect(Unit) {
+        launch { settingsPreferences.btcNode.collect { if (it.isNotEmpty()) btcNode = it } }
+        launch { settingsPreferences.ethNode.collect { if (it.isNotEmpty()) ethNode = it } }
+        launch { settingsPreferences.solNode.collect { if (it.isNotEmpty()) solNode = it } }
+        launch { settingsPreferences.ltcNode.collect { if (it.isNotEmpty()) ltcNode = it } }
+        launch { settingsPreferences.xmrNode.collect { xmrNode = it } }
+    }
 
     Scaffold(
         topBar = {
@@ -37,7 +50,16 @@ fun NodeSettingsScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { /* Save nodes */ }) {
+                    TextButton(onClick = {
+                        scope.launch {
+                            settingsPreferences.set(SettingsPreferences.BTC_NODE, btcNode)
+                            settingsPreferences.set(SettingsPreferences.ETH_NODE, ethNode)
+                            settingsPreferences.set(SettingsPreferences.SOL_NODE, solNode)
+                            settingsPreferences.set(SettingsPreferences.LTC_NODE, ltcNode)
+                            settingsPreferences.set(SettingsPreferences.XMR_NODE, xmrNode)
+                        }
+                        onNavigateBack()
+                    }) {
                         Text("Save", color = SpyWhyColors.AccentGreen)
                     }
                 },
@@ -74,6 +96,13 @@ fun NodeSettingsScreen(
                     solNode = Constants.SOL_NODE_DEFAULT
                     ltcNode = Constants.LTC_NODE_DEFAULT
                     xmrNode = "node.moneroworld.com:18089"
+                    scope.launch {
+                        settingsPreferences.set(SettingsPreferences.BTC_NODE, btcNode)
+                        settingsPreferences.set(SettingsPreferences.ETH_NODE, ethNode)
+                        settingsPreferences.set(SettingsPreferences.SOL_NODE, solNode)
+                        settingsPreferences.set(SettingsPreferences.LTC_NODE, ltcNode)
+                        settingsPreferences.set(SettingsPreferences.XMR_NODE, xmrNode)
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = SpyWhyColors.TextSecondary),
