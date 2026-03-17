@@ -108,7 +108,7 @@ class UpdateManager @Inject constructor(
             val downloadId = downloadManager.enqueue(downloadRequest)
 
             // Start progress tracking
-            startProgressTracking(downloadManager, downloadId)
+            startProgressTracking(downloadManager, downloadId, apkFile)
 
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(ctx: Context, intent: Intent) {
@@ -142,11 +142,19 @@ class UpdateManager @Inject constructor(
                 }
             }
 
-            context.registerReceiver(
-                receiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                Context.RECEIVER_NOT_EXPORTED
-            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(
+                    receiver,
+                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                    Context.RECEIVER_EXPORTED
+                )
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag")
+                context.registerReceiver(
+                    receiver,
+                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+                )
+            }
 
             Timber.d("Download started for ${updateInfo.versionName}")
         } catch (e: Exception) {
@@ -156,7 +164,7 @@ class UpdateManager @Inject constructor(
         }
     }
 
-    private fun startProgressTracking(downloadManager: DownloadManager, downloadId: Long) {
+    private fun startProgressTracking(downloadManager: DownloadManager, downloadId: Long, apkFile: File) {
         progressJob?.cancel()
         progressJob = CoroutineScope(Dispatchers.IO).launch {
             while (isActive) {
@@ -165,21 +173,38 @@ class UpdateManager @Inject constructor(
                     val cursor: Cursor? = downloadManager.query(query)
                     if (cursor != null && cursor.moveToFirst()) {
                         val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
-                        if (status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PENDING) {
-                            val bytesDownloaded = cursor.getLong(
-                                cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                            )
-                            val bytesTotal = cursor.getLong(
-                                cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                            )
-                            if (bytesTotal > 0) {
-                                _downloadProgress.value = bytesDownloaded.toFloat() / bytesTotal.toFloat()
+                        when (status) {
+                            DownloadManager.STATUS_RUNNING, DownloadManager.STATUS_PENDING -> {
+                                val bytesDownloaded = cursor.getLong(
+                                    cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                                )
+                                val bytesTotal = cursor.getLong(
+                                    cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                                )
+                                if (bytesTotal > 0) {
+                                    _downloadProgress.value = bytesDownloaded.toFloat() / bytesTotal.toFloat()
+                                }
                             }
-                        } else if (status == DownloadManager.STATUS_FAILED) {
-                            cursor.close()
-                            _updateState.value = UpdateState.ERROR
-                            _errorMessage.value = "Le téléchargement a échoué"
-                            break
+                            DownloadManager.STATUS_SUCCESSFUL -> {
+                                // Fallback: handle completion here if broadcast was missed
+                                cursor.close()
+                                _downloadProgress.value = 1f
+                                if (_updateState.value == UpdateState.DOWNLOADING) {
+                                    Timber.d("Download complete detected via polling fallback")
+                                    _updateState.value = UpdateState.INSTALLING
+                                    withContext(Dispatchers.Main) {
+                                        installApk(apkFile)
+                                    }
+                                }
+                                break
+                            }
+                            DownloadManager.STATUS_FAILED -> {
+                                val reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
+                                cursor.close()
+                                _updateState.value = UpdateState.ERROR
+                                _errorMessage.value = "Le téléchargement a échoué (erreur: $reason)"
+                                break
+                            }
                         }
                         cursor.close()
                     } else {
