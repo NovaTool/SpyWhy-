@@ -2,5 +2,5 @@
   "versionCode": 6,
   "versionName": "1.0.5",
   "apkUrl": "https://github.com/NovaTool/SpyWhy-/raw/claude/hardware-wallet-apk-2s5gN/release/SpyWhy-v1.0.5-release.apk",
-  "changelog": "Correction du téléchargement bloqué à 99% + amélioration du système de mise à jour"
+  "changelog": "Correction du téléchargement des mises à jour + les paramètres sont maintenant sauvegardés"
 }
