@@ -129,6 +129,8 @@ class MarketRepositoryImpl @Inject constructor(
 
     private fun CoinMarketResponse.toPriceData(): PriceData = PriceData(
         coinId = id,
+        symbol = symbol.uppercase(),
+        name = name,
         priceUsd = currentPrice ?: 0.0,
         marketCap = marketCap ?: 0.0,
         volume24h = totalVolume ?: 0.0,

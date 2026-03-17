@@ -120,20 +120,15 @@ class MainActivity : FragmentActivity() {
         setContent {
             SpyWhyTheme {
                 val navController = rememberNavController()
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    containerColor = MaterialTheme.colorScheme.background
-                ) { innerPadding ->
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        SpyWhyNavHost(
-                            navController = navController,
-                            modifier = Modifier.padding(innerPadding)
+                Box(modifier = Modifier.fillMaxSize()) {
+                    SpyWhyNavHost(
+                        navController = navController,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    if (isLocked) {
+                        BiometricLockOverlay(
+                            onUnlockRequest = { promptBiometric() }
                         )
-                        if (isLocked) {
-                            BiometricLockOverlay(
-                                onUnlockRequest = { promptBiometric() }
-                            )
-                        }
                     }
                 }
             }

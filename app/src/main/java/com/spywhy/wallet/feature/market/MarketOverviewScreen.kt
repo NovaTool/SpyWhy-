@@ -262,7 +262,7 @@ private fun CoinListItem(
         // Name and symbol
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = coin.coinId.replaceFirstChar { it.uppercase() },
+                text = coin.name.ifBlank { coin.coinId.replaceFirstChar { it.uppercase() } },
                 style = MaterialTheme.typography.titleMedium,
                 color = SpyWhyColors.White,
                 fontWeight = FontWeight.Medium,
@@ -270,7 +270,7 @@ private fun CoinListItem(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = coin.coinId.take(4).uppercase(),
+                text = coin.symbol.ifBlank { coin.coinId.take(4).uppercase() },
                 style = MaterialTheme.typography.bodySmall,
                 color = SpyWhyColors.TextSecondary
             )
@@ -330,15 +330,24 @@ private fun MiniSparkline(
 ) {
     if (data.size < 2) return
 
+    // Downsample sparkline to max 30 points for smooth list scrolling
+    val sampled = remember(data) {
+        if (data.size <= 30) data
+        else {
+            val step = data.size.toFloat() / 30f
+            (0 until 30).map { i -> data[(i * step).toInt().coerceAtMost(data.size - 1)] }
+        }
+    }
+
     Box(
         modifier = modifier.drawBehind {
-            val minVal = data.min()
-            val maxVal = data.max()
+            val minVal = sampled.min()
+            val maxVal = sampled.max()
             val range = (maxVal - minVal).coerceAtLeast(0.001)
-            val stepX = size.width / (data.size - 1)
+            val stepX = size.width / (sampled.size - 1)
 
             val path = Path()
-            data.forEachIndexed { index, value ->
+            sampled.forEachIndexed { index, value ->
                 val x = index * stepX
                 val y = size.height - ((value - minVal) / range * size.height).toFloat()
                 if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)

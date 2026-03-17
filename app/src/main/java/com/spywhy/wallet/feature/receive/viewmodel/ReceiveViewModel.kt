@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
+import com.spywhy.wallet.core.crypto.AddressGenerator
 import com.spywhy.wallet.domain.model.Blockchain
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.security.SecureRandom
 import javax.inject.Inject
 
 data class ReceiveUiState(
@@ -28,35 +30,57 @@ data class ReceiveUiState(
 )
 
 @HiltViewModel
-class ReceiveViewModel @Inject constructor() : ViewModel() {
+class ReceiveViewModel @Inject constructor(
+    private val addressGenerator: AddressGenerator
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReceiveUiState())
     val uiState: StateFlow<ReceiveUiState> = _uiState.asStateFlow()
 
-    // Placeholder addresses per blockchain - in production these come from the wallet's HD key derivation
-    private val addressPool = mapOf(
-        Blockchain.BITCOIN to listOf(
-            "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
-            "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq",
-            "bc1q42lja79elem0anu8q860g3ua5ld6czmg7v39ml"
-        ),
-        Blockchain.ETHEREUM to listOf(
-            "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18",
-            "0x8ba1f109551bD432803012645Hc136D7eF64ABf1"
-        ),
-        Blockchain.SOLANA to listOf(
-            "7nYhGF2DM8RYzD3a1PBvxGmFqD1sVL8Y3cN4sGr5tJwE"
-        ),
-        Blockchain.LITECOIN to listOf(
-            "ltc1qhfj5xr7m3pqa8mrzm0cc2rj5l9mfvn97a8wsp"
-        ),
-        Blockchain.MONERO to listOf(
-            "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A"
-        )
-    )
+    private val addressCache = mutableMapOf<Blockchain, MutableList<String>>()
+    private var seed: ByteArray? = null
 
     init {
-        loadAddress()
+        generateSeedAndLoadAddresses()
+    }
+
+    private fun generateSeedAndLoadAddresses() {
+        viewModelScope.launch(Dispatchers.Default) {
+            _uiState.update { it.copy(isGenerating = true) }
+
+            // Generate a deterministic seed from random entropy
+            // In production this comes from the wallet's stored encrypted seed
+            val entropy = ByteArray(32)
+            SecureRandom().nextBytes(entropy)
+            // Use PBKDF2 to stretch entropy into a proper seed
+            val spec = javax.crypto.spec.PBEKeySpec(
+                String(entropy.map { (it.toInt() and 0xFF).toChar() }.toCharArray()).toCharArray(),
+                "spywhy-wallet".toByteArray(),
+                2048,
+                512
+            )
+            seed = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+                .generateSecret(spec).encoded
+
+            // Pre-generate addresses for all blockchains
+            Blockchain.entries.forEach { blockchain ->
+                try {
+                    val addresses = addressGenerator.generateAddresses(
+                        seed = seed!!,
+                        blockchain = blockchain,
+                        count = 5
+                    )
+                    addressCache[blockchain] = addresses.toMutableList()
+                } catch (e: Exception) {
+                    // Fallback if address generation fails for a chain
+                    addressCache[blockchain] = mutableListOf("Address generation error")
+                }
+            }
+
+            withContext(Dispatchers.Main) {
+                loadAddress()
+            }
+        }
     }
 
     fun selectBlockchain(blockchain: Blockchain) {
@@ -78,25 +102,43 @@ class ReceiveViewModel @Inject constructor() : ViewModel() {
 
     fun rotateAddress() {
         val blockchain = _uiState.value.selectedBlockchain
-        val pool = addressPool[blockchain] ?: return
+        val pool = addressCache[blockchain] ?: return
         val nextIndex = (_uiState.value.addressIndex + 1) % pool.size
+
+        // Generate more if needed
+        if (nextIndex >= pool.size - 1 && seed != null) {
+            viewModelScope.launch(Dispatchers.Default) {
+                try {
+                    val newAddress = addressGenerator.generateAddress(
+                        seed = seed!!,
+                        blockchain = blockchain,
+                        addressIndex = pool.size
+                    )
+                    pool.add(newAddress)
+                } catch (_: Exception) { }
+            }
+        }
+
         _uiState.update { it.copy(addressIndex = nextIndex) }
         loadAddress()
     }
 
     private fun loadAddress() {
         val blockchain = _uiState.value.selectedBlockchain
-        val pool = addressPool[blockchain] ?: return
+        val pool = addressCache[blockchain]
+        if (pool.isNullOrEmpty()) {
+            _uiState.update { it.copy(currentAddress = "Generating...", isGenerating = true) }
+            return
+        }
         val index = _uiState.value.addressIndex.coerceIn(0, pool.size - 1)
-        val address = pool[index]
-        _uiState.update { it.copy(currentAddress = address) }
+        _uiState.update { it.copy(currentAddress = pool[index], isGenerating = false) }
         generateQr()
     }
 
     private fun generateQr() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isGenerating = true) }
             val state = _uiState.value
+            if (state.currentAddress.isBlank() || state.currentAddress == "Generating...") return@launch
             val qrContent = buildQrContent(
                 blockchain = state.selectedBlockchain,
                 address = state.currentAddress,
@@ -141,5 +183,10 @@ class ReceiveViewModel @Inject constructor() : ViewModel() {
         } catch (_: Exception) {
             null
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        seed?.let { com.spywhy.wallet.core.crypto.SecureMemory.wipe(it) }
     }
 }

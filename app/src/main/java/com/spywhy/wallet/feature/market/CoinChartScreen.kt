@@ -118,13 +118,15 @@ fun CoinChartScreen(
             // Coin header
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Text(
-                    text = coinId.replaceFirstChar { it.uppercase() },
+                    text = coinData?.name?.ifBlank { coinId.replaceFirstChar { it.uppercase() } }
+                        ?: coinId.replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.headlineMedium,
                     color = SpyWhyColors.White,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = coinId.take(4).uppercase(),
+                    text = coinData?.symbol?.ifBlank { coinId.take(4).uppercase() }
+                        ?: coinId.take(4).uppercase(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = SpyWhyColors.TextSecondary
                 )
@@ -277,6 +279,15 @@ private fun InteractiveLineChart(
     var touchX by remember { mutableFloatStateOf(-1f) }
     var touchedValue by remember { mutableStateOf<String?>(null) }
 
+    // Downsample to max 200 points to avoid rendering lag
+    val sampledData = remember(data) {
+        if (data.size <= 200) data
+        else {
+            val step = data.size.toFloat() / 200f
+            (0 until 200).map { i -> data[(i * step).toInt().coerceAtMost(data.size - 1)] }
+        }
+    }
+
     Column(modifier = modifier) {
         // Touch value display
         if (touchedValue != null) {
@@ -306,24 +317,24 @@ private fun InteractiveLineChart(
                         },
                         onHorizontalDrag = { _, dragAmount ->
                             touchX += dragAmount
-                            val index = ((touchX / size.width) * (data.size - 1))
+                            val index = ((touchX / size.width) * (sampledData.size - 1))
                                 .toInt()
-                                .coerceIn(0, data.size - 1)
-                            touchedValue = formatPriceDetail(data[index].second)
+                                .coerceIn(0, sampledData.size - 1)
+                            touchedValue = formatPriceDetail(sampledData[index].second)
                         }
                     )
                 }
                 .pointerInput(Unit) {
                     detectTapGestures { offset ->
-                        val index = ((offset.x / size.width) * (data.size - 1))
+                        val index = ((offset.x / size.width) * (sampledData.size - 1))
                             .toInt()
-                            .coerceIn(0, data.size - 1)
-                        touchedValue = formatPriceDetail(data[index].second)
+                            .coerceIn(0, sampledData.size - 1)
+                        touchedValue = formatPriceDetail(sampledData[index].second)
                         touchX = offset.x
                     }
                 }
         ) {
-            val prices = data.map { it.second }
+            val prices = sampledData.map { it.second }
             val minPrice = prices.min()
             val maxPrice = prices.max()
             val range = (maxPrice - minPrice).coerceAtLeast(0.001)
