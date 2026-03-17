@@ -5,6 +5,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.spywhy.wallet.core.database.AppDatabase
@@ -27,6 +29,26 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `favorites` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `coin_id` TEXT NOT NULL, `coin_name` TEXT NOT NULL, `ticker` TEXT NOT NULL, `created_at` INTEGER NOT NULL)"
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_favorites_coin_id` ON `favorites` (`coin_id`)"
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `active_addresses` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `wallet_id` INTEGER NOT NULL, `blockchain` TEXT NOT NULL, `address` TEXT NOT NULL, `derivation_index` INTEGER NOT NULL, `is_active` INTEGER NOT NULL, `label` TEXT, `created_at` INTEGER NOT NULL)"
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_active_addresses_address` ON `active_addresses` (`address`)"
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_active_addresses_blockchain` ON `active_addresses` (`blockchain`)"
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -34,7 +56,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             Constants.DATABASE_NAME
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(MIGRATION_1_2).build()
     }
 
     @Provides
