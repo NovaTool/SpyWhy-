@@ -109,7 +109,7 @@ fun WelcomeScreen(
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = SpyWhyColors.TextPrimary
             ),
-            border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+            border = androidx.compose.foundation.BorderStroke(1.dp, SpyWhyColors.BorderGray)
         ) {
             Text(
                 text = "Import Wallet",

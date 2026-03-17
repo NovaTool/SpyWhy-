@@ -19,17 +19,14 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments["room.schemaLocation"] = "$projectDir/schemas"
-            }
-        }
     }
+
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -51,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -61,8 +59,24 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/NOTICE.txt"
+            excludes += "META-INF/*.kotlin_module"
         }
     }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.bouncycastle:bcprov-jdk18on:1.73")
+        }
+    }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -88,6 +102,8 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.work.compiler)
 
     // Room
     implementation(libs.room.runtime)
@@ -109,8 +125,12 @@ dependencies {
     implementation(libs.zxing.core)
 
     // Crypto Libraries
-    implementation(libs.bitcoinj.core)
-    implementation(libs.web3j.core)
+    implementation(libs.bitcoinj.core) {
+        exclude(group = "org.bouncycastle", module = "bcprov-jdk15to18")
+    }
+    implementation(libs.web3j.core) {
+        exclude(group = "org.bouncycastle", module = "bcprov-jdk15to18")
+    }
 
     // Network
     implementation(libs.retrofit)

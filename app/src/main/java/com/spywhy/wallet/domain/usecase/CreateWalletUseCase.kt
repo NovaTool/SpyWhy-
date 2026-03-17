@@ -10,11 +10,11 @@ class CreateWalletUseCase @Inject constructor(
     private val mnemonicGenerator: MnemonicGenerator
 ) {
     suspend fun generateSeedPhrase(wordCount: Int = 12): List<String> {
-        return mnemonicGenerator.generateMnemonic(wordCount)
+        return mnemonicGenerator.generate(wordCount).split(" ")
     }
 
     fun validateSeedPhrase(words: List<String>): Boolean {
-        return mnemonicGenerator.validateMnemonic(words)
+        return mnemonicGenerator.validate(words.joinToString(" "))
     }
 
     suspend fun createWallet(

@@ -33,7 +33,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -128,11 +128,7 @@ fun TransactionListScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = { viewModel.refresh() },
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (uiState.filteredTransactions.isEmpty() && !uiState.isRefreshing) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -163,6 +159,20 @@ fun TransactionListScreen(
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
+            }
+
+            // Refresh button
+            IconButton(
+                onClick = { viewModel.refresh() },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = "Refresh",
+                    tint = SpyWhyColors.TextPrimary
+                )
             }
         }
     }

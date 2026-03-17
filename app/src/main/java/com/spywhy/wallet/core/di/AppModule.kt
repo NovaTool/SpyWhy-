@@ -9,11 +9,14 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.spywhy.wallet.core.database.AppDatabase
 import com.spywhy.wallet.core.util.Constants
+import com.spywhy.wallet.SecurityManager
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Inject
 import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "spywhy_settings")
@@ -77,4 +80,21 @@ object AppModule {
 
     @Provides
     fun provideContactDao(database: AppDatabase) = database.contactDao()
+
+    @Provides
+    @Singleton
+    fun provideSecurityManager(): SecurityManager = DefaultSecurityManager()
+}
+
+class DefaultSecurityManager @Inject constructor() : SecurityManager {
+    private var pauseTimestamp: Long = 0L
+
+    override fun recordPauseTimestamp() {
+        pauseTimestamp = System.currentTimeMillis()
+    }
+
+    override fun shouldLock(): Boolean {
+        if (pauseTimestamp == 0L) return false
+        return (System.currentTimeMillis() - pauseTimestamp) > Constants.AUTO_LOCK_TIMEOUT_MS
+    }
 }

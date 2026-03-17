@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CastConnected
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -44,6 +45,7 @@ import com.spywhy.wallet.core.util.SpyWhyColors
 import com.spywhy.wallet.feature.hwmode.viewmodel.ConnectionMode
 import com.spywhy.wallet.feature.hwmode.viewmodel.HWModeViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HWModeScreen(
     viewModel: HWModeViewModel,
@@ -142,6 +144,7 @@ fun HWModeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StatusIndicator(
     mode: ConnectionMode,

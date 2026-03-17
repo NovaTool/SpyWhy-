@@ -33,7 +33,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -165,11 +165,7 @@ fun MarketOverviewScreen(
             MarketTab.TOP_LOSERS -> uiState.topLosers
         }
 
-        PullToRefreshBox(
-            isRefreshing = uiState.isLoading,
-            onRefresh = { viewModel.refresh() },
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (displayList.isEmpty() && !uiState.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -200,6 +196,20 @@ fun MarketOverviewScreen(
                         )
                     }
                 }
+            }
+
+            // Refresh button
+            IconButton(
+                onClick = { viewModel.refresh() },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = "Refresh",
+                    tint = SpyWhyColors.TextPrimary
+                )
             }
         }
     }
