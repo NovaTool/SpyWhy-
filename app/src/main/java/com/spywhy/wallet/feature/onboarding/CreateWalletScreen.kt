@@ -67,11 +67,6 @@ data class CreateWalletUiState(
     val wordCount: Int = 12,
     val seedPhrase: List<String> = emptyList(),
     val isGenerated: Boolean = false,
-    val isVerifying: Boolean = false,
-    val verificationWords: List<String> = emptyList(),
-    val selectedVerificationWords: List<String> = emptyList(),
-    val verificationIndices: List<Int> = emptyList(),
-    val verificationError: Boolean = false,
     val isCreating: Boolean = false,
     val isCreated: Boolean = false
 )
@@ -92,14 +87,11 @@ class CreateWalletViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             wordCount = count,
             seedPhrase = emptyList(),
-            isGenerated = false,
-            isVerifying = false
+            isGenerated = false
         )
     }
 
     fun generateSeedPhrase() {
-        // In production this uses a cryptographically secure BIP39 generator.
-        // Placeholder implementation generates random words from a small sample list.
         val sampleWords = listOf(
             "abandon", "ability", "able", "about", "above", "absent",
             "absorb", "abstract", "absurd", "abuse", "access", "accident",
@@ -110,56 +102,20 @@ class CreateWalletViewModel @Inject constructor(
         val phrase = (1..count).map { sampleWords.random() }
         _uiState.value = _uiState.value.copy(
             seedPhrase = phrase,
-            isGenerated = true,
-            isVerifying = false,
-            selectedVerificationWords = emptyList(),
-            verificationError = false
+            isGenerated = true
         )
     }
 
-    fun startVerification() {
-        val phrase = _uiState.value.seedPhrase
-        val shuffled = phrase.shuffled()
-        _uiState.value = _uiState.value.copy(
-            isVerifying = true,
-            verificationWords = shuffled,
-            selectedVerificationWords = emptyList(),
-            verificationError = false
-        )
-    }
-
-    fun selectVerificationWord(word: String) {
-        val current = _uiState.value.selectedVerificationWords
-        _uiState.value = _uiState.value.copy(
-            selectedVerificationWords = current + word,
-            verificationError = false
-        )
-    }
-
-    fun removeLastVerificationWord() {
-        val current = _uiState.value.selectedVerificationWords
-        if (current.isNotEmpty()) {
-            _uiState.value = _uiState.value.copy(
-                selectedVerificationWords = current.dropLast(1),
-                verificationError = false
-            )
-        }
-    }
-
-    fun verifyAndCreate() {
+    fun confirmAndCreate() {
         val state = _uiState.value
-        if (state.selectedVerificationWords == state.seedPhrase) {
-            _uiState.value = state.copy(isCreating = true, verificationError = false)
-            viewModelScope.launch {
-                walletRepository.createWallet(
-                    name = state.walletName.ifBlank { "My Wallet" },
-                    seedPhrase = state.seedPhrase,
-                    blockchains = Blockchain.entries.toList()
-                )
-                _uiState.value = _uiState.value.copy(isCreating = false, isCreated = true)
-            }
-        } else {
-            _uiState.value = state.copy(verificationError = true)
+        _uiState.value = state.copy(isCreating = true)
+        viewModelScope.launch {
+            walletRepository.createWallet(
+                name = state.walletName.ifBlank { "My Wallet" },
+                seedPhrase = state.seedPhrase,
+                blockchains = Blockchain.entries.toList()
+            )
+            _uiState.value = _uiState.value.copy(isCreating = false, isCreated = true)
         }
     }
 }
@@ -294,7 +250,7 @@ fun CreateWalletScreen(
 
             // Seed phrase display
             AnimatedVisibility(
-                visible = state.isGenerated && !state.isVerifying,
+                visible = state.isGenerated,
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
@@ -380,130 +336,8 @@ fun CreateWalletScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
-                        onClick = viewModel::startVerification,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = SpyWhyColors.AccentGreen,
-                            contentColor = SpyWhyColors.White
-                        )
-                    ) {
-                        Text(
-                            "I've Written It Down - Verify",
-                            fontWeight = FontWeight.SemiBold,
-                            color = SpyWhyColors.White
-                        )
-                    }
-                }
-            }
-
-            // Verification step
-            AnimatedVisibility(
-                visible = state.isVerifying,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Tap the words in the correct order to verify your seed phrase.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = SpyWhyColors.TextSecondary,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Selected words display
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(SpyWhyColors.CardBackground)
-                            .border(
-                                width = 1.dp,
-                                color = if (state.verificationError) SpyWhyColors.AccentRed
-                                else SpyWhyColors.BorderGray,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .padding(12.dp)
-                    ) {
-                        if (state.selectedVerificationWords.isEmpty()) {
-                            Text(
-                                text = "Tap words below in order...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = SpyWhyColors.TextDisabled,
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                        } else {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                state.selectedVerificationWords.forEachIndexed { index, word ->
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(SpyWhyColors.MediumGray)
-                                            .clickable { viewModel.removeLastVerificationWord() }
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = "${index + 1}. $word",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = SpyWhyColors.TextPrimary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (state.verificationError) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Incorrect order. Please try again.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = SpyWhyColors.AccentRed
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Shuffled word pool
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        state.verificationWords.forEach { word ->
-                            val alreadySelected = state.selectedVerificationWords.count { it == word } >=
-                                    state.verificationWords.count { it == word }.coerceAtMost(
-                                        state.seedPhrase.count { it == word }
-                                    )
-                            val isUsed = state.selectedVerificationWords.contains(word) && alreadySelected
-
-                            OutlinedButton(
-                                onClick = { viewModel.selectVerificationWord(word) },
-                                enabled = !isUsed,
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = SpyWhyColors.TextPrimary,
-                                    disabledContentColor = SpyWhyColors.TextDisabled
-                                )
-                            ) {
-                                Text(word, style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = viewModel::verifyAndCreate,
-                        enabled = state.selectedVerificationWords.size == state.seedPhrase.size && !state.isCreating,
+                        onClick = viewModel::confirmAndCreate,
+                        enabled = !state.isCreating,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
@@ -516,8 +350,9 @@ fun CreateWalletScreen(
                         )
                     ) {
                         Text(
-                            text = if (state.isCreating) "Creating..." else "Verify & Create Wallet",
-                            fontWeight = FontWeight.SemiBold
+                            text = if (state.isCreating) "Creating..." else "I've Written It Down - Create Wallet",
+                            fontWeight = FontWeight.SemiBold,
+                            color = SpyWhyColors.White
                         )
                     }
                 }
