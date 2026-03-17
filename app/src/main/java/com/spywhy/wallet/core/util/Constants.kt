@@ -31,6 +31,10 @@ object Constants {
     const val SIDESHIFT_BASE_URL = "https://sideshift.ai/api/v2/"
     const val ONEINCH_BASE_URL = "https://api.1inch.dev/swap/v6.0/"
 
+    // Auto-update
+    const val UPDATE_VERSION_URL = "https://raw.githubusercontent.com/NovaTool/SpyWhy-/main/version.json"
+    const val UPDATE_CHECK_INTERVAL_MS = 3_600_000L // 1 hour
+
     // QR Protocol
     const val QR_PROTOCOL_VERSION = 1
     const val QR_MAX_BYTES_SINGLE = 2953

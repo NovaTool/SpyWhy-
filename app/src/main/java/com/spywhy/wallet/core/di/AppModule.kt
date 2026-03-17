@@ -8,9 +8,11 @@ import androidx.room.Room
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.spywhy.wallet.core.database.AppDatabase
+import com.spywhy.wallet.core.update.UpdateManager
 import com.spywhy.wallet.core.util.Constants
 import com.spywhy.wallet.SecurityManager
 import dagger.Binds
+import okhttp3.OkHttpClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -86,6 +88,13 @@ object AppModule {
 
     @Provides
     fun provideActiveAddressDao(database: AppDatabase) = database.activeAddressDao()
+
+    @Provides
+    @Singleton
+    fun provideUpdateManager(
+        @ApplicationContext context: Context,
+        okHttpClient: OkHttpClient
+    ): UpdateManager = UpdateManager(context, okHttpClient)
 
     @Provides
     @Singleton

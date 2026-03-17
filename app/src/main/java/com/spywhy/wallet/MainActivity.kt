@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -29,6 +30,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import com.spywhy.wallet.core.update.UpdateDialog
+import com.spywhy.wallet.core.update.UpdateInfo
+import com.spywhy.wallet.core.update.UpdateManager
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -101,8 +107,12 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var securityManager: SecurityManager
 
+    @Inject
+    lateinit var updateManager: UpdateManager
+
     private var isLocked by mutableStateOf(false)
     private var biometricEnabled by mutableStateOf(true)
+    private var pendingUpdate by mutableStateOf<UpdateInfo?>(null)
 
     // ── Lifecycle ───────────────────────────────────────────────────────
 
@@ -117,6 +127,15 @@ class MainActivity : FragmentActivity() {
 
         enableEdgeToEdge()
 
+        // Check for updates on launch
+        lifecycleScope.launch {
+            val update = updateManager.checkForUpdate()
+            if (update != null) {
+                Timber.d("Update available: ${update.versionName}")
+                pendingUpdate = update
+            }
+        }
+
         setContent {
             SpyWhyTheme {
                 val navController = rememberNavController()
@@ -128,6 +147,18 @@ class MainActivity : FragmentActivity() {
                     if (isLocked) {
                         BiometricLockOverlay(
                             onUnlockRequest = { promptBiometric() }
+                        )
+                    }
+
+                    // Update dialog
+                    pendingUpdate?.let { update ->
+                        UpdateDialog(
+                            updateInfo = update,
+                            onUpdate = {
+                                updateManager.downloadAndInstall(update)
+                                pendingUpdate = null
+                            },
+                            onDismiss = { pendingUpdate = null }
                         )
                     }
                 }
