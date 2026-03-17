@@ -1,6 +1,6 @@
 {
-  "versionCode": 2,
-  "versionName": "1.0.1",
-  "apkUrl": "https://github.com/NovaTool/SpyWhy-/raw/main/release/SpyWhy-v1.0.1-release.apk",
-  "changelog": "Ajout de la vérification manuelle des mises à jour dans les paramètres"
+  "versionCode": 3,
+  "versionName": "1.0.2",
+  "apkUrl": "https://github.com/NovaTool/SpyWhy-/raw/claude/hardware-wallet-apk-2s5gN/release/SpyWhy-v1.0.2-release.apk",
+  "changelog": "Correction mise à jour + conservation des données wallet"
 }
