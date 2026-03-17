@@ -19,17 +19,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
@@ -74,6 +74,7 @@ fun MarketOverviewScreen(
     ) {
         Spacer(modifier = Modifier.height(48.dp))
 
+        // Title
         Text(
             text = "Market",
             style = MaterialTheme.typography.headlineMedium,
@@ -92,7 +93,10 @@ fun MarketOverviewScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             placeholder = {
-                Text(text = "Search coins...", color = SpyWhyColors.TextDisabled)
+                Text(
+                    text = "Search coins...",
+                    color = SpyWhyColors.TextDisabled
+                )
             },
             leadingIcon = {
                 Icon(
@@ -110,18 +114,19 @@ fun MarketOverviewScreen(
                 focusedBorderColor = SpyWhyColors.White.copy(alpha = 0.5f),
                 unfocusedBorderColor = SpyWhyColors.BorderGray,
                 focusedContainerColor = SpyWhyColors.CardBackground,
-                unfocusedContainerColor = SpyWhyColors.CardBackground
+                unfocusedContainerColor = SpyWhyColors.CardBackground,
+                focusedPlaceholderColor = SpyWhyColors.TextDisabled,
+                unfocusedPlaceholderColor = SpyWhyColors.TextDisabled
             )
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         // Tabs
-        ScrollableTabRow(
+        TabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = SpyWhyColors.Black,
             contentColor = SpyWhyColors.White,
-            edgePadding = 20.dp,
             indicator = { tabPositions ->
                 if (selectedTabIndex < tabPositions.size) {
                     TabRowDefaults.SecondaryIndicator(
@@ -141,10 +146,11 @@ fun MarketOverviewScreen(
                     },
                     text = {
                         Text(
-                            text = tab.displayName,
+                            text = tab.label,
                             style = MaterialTheme.typography.labelLarge,
                             color = if (selectedTabIndex == index) SpyWhyColors.White
-                            else SpyWhyColors.TextSecondary
+                            else SpyWhyColors.TextSecondary,
+                            maxLines = 1
                         )
                     }
                 )
@@ -152,29 +158,28 @@ fun MarketOverviewScreen(
         }
 
         // Coin list with pull to refresh
+        val displayList = when (tabs[selectedTabIndex]) {
+            MarketTab.ALL -> uiState.filteredCoinList
+            MarketTab.FAVORITES -> uiState.favorites
+            MarketTab.TOP_GAINERS -> uiState.topGainers
+            MarketTab.TOP_LOSERS -> uiState.topLosers
+        }
+
         PullToRefreshBox(
             isRefreshing = uiState.isLoading,
             onRefresh = { viewModel.refresh() },
             modifier = Modifier.fillMaxSize()
         ) {
-            val displayList = when (tabs[selectedTabIndex]) {
-                MarketTab.ALL -> uiState.coinList
-                MarketTab.FAVORITES -> uiState.favorites
-                MarketTab.TOP_GAINERS -> uiState.topGainers
-                MarketTab.TOP_LOSERS -> uiState.topLosers
-            }
-
             if (displayList.isEmpty() && !uiState.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (uiState.searchQuery.isNotEmpty()) "No coins match your search"
+                        text = if (uiState.searchQuery.isNotEmpty()) "No results found"
                         else "No data available",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = SpyWhyColors.TextSecondary,
-                        textAlign = TextAlign.Center
+                        color = SpyWhyColors.TextSecondary
                     )
                 }
             } else {
@@ -244,7 +249,7 @@ private fun CoinListItem(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Name & symbol
+        // Name and symbol
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = coin.coinId.replaceFirstChar { it.uppercase() },
@@ -255,7 +260,7 @@ private fun CoinListItem(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = coin.coinId.uppercase(),
+                text = coin.coinId.take(4).uppercase(),
                 style = MaterialTheme.typography.bodySmall,
                 color = SpyWhyColors.TextSecondary
             )
@@ -267,14 +272,14 @@ private fun CoinListItem(
                 data = coin.sparkline,
                 color = changeColor,
                 modifier = Modifier
-                    .width(56.dp)
+                    .width(60.dp)
                     .height(28.dp)
             )
         }
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Price & change
+        // Price and change
         Column(horizontalAlignment = Alignment.End) {
             Text(
                 text = formatPrice(coin.priceUsd),
@@ -290,15 +295,17 @@ private fun CoinListItem(
             )
         }
 
-        // Favorite
+        Spacer(modifier = Modifier.width(4.dp))
+
+        // Favorite star
         IconButton(
             onClick = onFavoriteToggle,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(32.dp)
         ) {
             Icon(
-                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                 contentDescription = "Favorite",
-                tint = if (isFavorite) SpyWhyColors.AccentRed else SpyWhyColors.TextDisabled,
+                tint = if (isFavorite) SpyWhyColors.AccentYellow else SpyWhyColors.TextDisabled,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -313,29 +320,26 @@ private fun MiniSparkline(
 ) {
     if (data.size < 2) return
 
-    val minValue = data.min()
-    val maxValue = data.max()
-    val range = (maxValue - minValue).coerceAtLeast(0.0001)
-
     Box(
-        modifier = modifier
-            .drawBehind {
-                val path = Path()
-                val widthStep = size.width / (data.size - 1)
+        modifier = modifier.drawBehind {
+            val minVal = data.min()
+            val maxVal = data.max()
+            val range = (maxVal - minVal).coerceAtLeast(0.001)
+            val stepX = size.width / (data.size - 1)
 
-                data.forEachIndexed { index, value ->
-                    val x = index * widthStep
-                    val y = size.height - ((value - minValue) / range * size.height).toFloat()
-                    if (index == 0) path.moveTo(x, y)
-                    else path.lineTo(x, y)
-                }
-
-                drawPath(
-                    path = path,
-                    color = color,
-                    style = Stroke(width = 1.5f)
-                )
+            val path = Path()
+            data.forEachIndexed { index, value ->
+                val x = index * stepX
+                val y = size.height - ((value - minVal) / range * size.height).toFloat()
+                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
+
+            drawPath(
+                path = path,
+                color = color,
+                style = Stroke(width = 1.5f)
+            )
+        }
     )
 }
 
@@ -344,6 +348,6 @@ private fun formatPrice(price: Double): String {
         price >= 1000 -> "$${"%,.0f".format(price)}"
         price >= 1 -> "$${"%,.2f".format(price)}"
         price >= 0.01 -> "$${"%,.4f".format(price)}"
-        else -> "$${"%,.8f".format(price)}"
+        else -> "$${"%,.6f".format(price)}"
     }
 }
