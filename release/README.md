@@ -1,20 +1,19 @@
 # SpyWhy v1.0.0 Release
 
-## Reassemble APK
+## Download
 
-The APK was split into parts to fit GitHub's 100MB file limit.
+Download `SpyWhy-v1.0.0-release.apk` directly from this folder.
 
-### On Linux/Mac:
-```bash
-cat SpyWhy-v1.0.0-release.apk.part_* > SpyWhy-v1.0.0-release.apk
-```
+**Size:** ~89MB
+**Architecture:** arm64-v8a (Pixel 9, modern Android devices)
+**Min SDK:** Android 9 (API 28)
+**Target SDK:** Android 14 (API 34)
 
-### On Windows (PowerShell):
-```powershell
-Get-Content SpyWhy-v1.0.0-release.apk.part_aa, SpyWhy-v1.0.0-release.apk.part_ab -Encoding Byte -ReadCount 0 | Set-Content SpyWhy-v1.0.0-release.apk -Encoding Byte
-```
+## Install
 
-Then install on your device:
+Transfer the APK to your device and install it, or use ADB:
 ```bash
 adb install SpyWhy-v1.0.0-release.apk
 ```
+
+> Note: You may need to enable "Install from unknown sources" in your device settings.
