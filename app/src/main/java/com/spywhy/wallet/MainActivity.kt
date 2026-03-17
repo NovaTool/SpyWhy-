@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -35,6 +36,7 @@ import com.spywhy.wallet.core.database.dao.WalletDao
 import com.spywhy.wallet.core.update.UpdateDialog
 import com.spywhy.wallet.core.update.UpdateInfo
 import com.spywhy.wallet.core.update.UpdateManager
+import com.spywhy.wallet.core.update.UpdateState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -173,13 +175,22 @@ class MainActivity : FragmentActivity() {
 
                     // Update dialog
                     pendingUpdate?.let { update ->
+                        val currentUpdateState by updateManager.updateState.collectAsState()
+                        val currentProgress by updateManager.downloadProgress.collectAsState()
+                        val currentError by updateManager.errorMessage.collectAsState()
+
                         UpdateDialog(
                             updateInfo = update,
+                            updateState = currentUpdateState,
+                            downloadProgress = currentProgress,
+                            errorMessage = currentError,
                             onUpdate = {
                                 updateManager.downloadAndInstall(update)
-                                pendingUpdate = null
                             },
-                            onDismiss = { pendingUpdate = null }
+                            onDismiss = {
+                                updateManager.resetState()
+                                pendingUpdate = null
+                            }
                         )
                     }
                 }

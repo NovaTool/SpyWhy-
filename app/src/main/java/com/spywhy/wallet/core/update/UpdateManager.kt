@@ -6,14 +6,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import androidx.core.content.FileProvider
 import com.spywhy.wallet.core.util.Constants
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -21,7 +22,6 @@ import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
 
 data class UpdateInfo(
     val versionCode: Int,
@@ -35,6 +35,17 @@ class UpdateManager @Inject constructor(
     private val context: Context,
     private val okHttpClient: OkHttpClient
 ) {
+
+    private val _downloadProgress = MutableStateFlow(0f)
+    val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
+
+    private val _updateState = MutableStateFlow(UpdateState.READY)
+    val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private var progressJob: Job? = null
 
     suspend fun checkForUpdate(): UpdateInfo? = withContext(Dispatchers.IO) {
         try {
@@ -73,43 +84,111 @@ class UpdateManager @Inject constructor(
     }
 
     fun downloadAndInstall(updateInfo: UpdateInfo) {
-        val apkFile = File(
-            context.getExternalFilesDir("updates"),
-            "spywhy-${updateInfo.versionName}.apk"
-        )
+        _updateState.value = UpdateState.DOWNLOADING
+        _downloadProgress.value = 0f
+        _errorMessage.value = null
 
-        // Delete old APK if exists
-        if (apkFile.exists()) apkFile.delete()
+        val updatesDir = context.getExternalFilesDir("updates")
+        // Clean up old APKs
+        updatesDir?.listFiles()?.forEach { it.delete() }
+
+        val apkFile = File(updatesDir, "spywhy-${updateInfo.versionName}.apk")
 
         val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
         val downloadRequest = DownloadManager.Request(Uri.parse(updateInfo.apkUrl))
             .setTitle("SpyWhy Wallet ${updateInfo.versionName}")
             .setDescription("Téléchargement de la mise à jour...")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
             .setDestinationUri(Uri.fromFile(apkFile))
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(false)
 
-        val downloadId = downloadManager.enqueue(downloadRequest)
+        try {
+            val downloadId = downloadManager.enqueue(downloadRequest)
 
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context, intent: Intent) {
-                val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-                if (id == downloadId) {
-                    ctx.unregisterReceiver(this)
-                    installApk(apkFile)
+            // Start progress tracking
+            startProgressTracking(downloadManager, downloadId)
+
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(ctx: Context, intent: Intent) {
+                    val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+                    if (id == downloadId) {
+                        try {
+                            ctx.unregisterReceiver(this)
+                        } catch (_: Exception) {}
+                        progressJob?.cancel()
+
+                        // Check download status
+                        val query = DownloadManager.Query().setFilterById(downloadId)
+                        val cursor = downloadManager.query(query)
+                        if (cursor != null && cursor.moveToFirst()) {
+                            val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                            cursor.close()
+                            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                                _downloadProgress.value = 1f
+                                _updateState.value = UpdateState.INSTALLING
+                                installApk(apkFile)
+                            } else {
+                                _updateState.value = UpdateState.ERROR
+                                _errorMessage.value = "Le téléchargement a échoué (status: $status)"
+                            }
+                        } else {
+                            cursor?.close()
+                            _updateState.value = UpdateState.ERROR
+                            _errorMessage.value = "Le téléchargement a échoué"
+                        }
+                    }
                 }
             }
+
+            context.registerReceiver(
+                receiver,
+                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                Context.RECEIVER_NOT_EXPORTED
+            )
+
+            Timber.d("Download started for ${updateInfo.versionName}")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to start download")
+            _updateState.value = UpdateState.ERROR
+            _errorMessage.value = "Impossible de démarrer le téléchargement: ${e.message}"
         }
+    }
 
-        context.registerReceiver(
-            receiver,
-            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-            Context.RECEIVER_NOT_EXPORTED
-        )
-
-        Timber.d("Download started for ${updateInfo.versionName}")
+    private fun startProgressTracking(downloadManager: DownloadManager, downloadId: Long) {
+        progressJob?.cancel()
+        progressJob = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) {
+                try {
+                    val query = DownloadManager.Query().setFilterById(downloadId)
+                    val cursor: Cursor? = downloadManager.query(query)
+                    if (cursor != null && cursor.moveToFirst()) {
+                        val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                        if (status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PENDING) {
+                            val bytesDownloaded = cursor.getLong(
+                                cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                            )
+                            val bytesTotal = cursor.getLong(
+                                cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                            )
+                            if (bytesTotal > 0) {
+                                _downloadProgress.value = bytesDownloaded.toFloat() / bytesTotal.toFloat()
+                            }
+                        } else if (status == DownloadManager.STATUS_FAILED) {
+                            cursor.close()
+                            _updateState.value = UpdateState.ERROR
+                            _errorMessage.value = "Le téléchargement a échoué"
+                            break
+                        }
+                        cursor.close()
+                    } else {
+                        cursor?.close()
+                    }
+                } catch (_: Exception) {}
+                delay(500)
+            }
+        }
     }
 
     private fun installApk(apkFile: File) {
@@ -130,7 +209,16 @@ class UpdateManager @Inject constructor(
             Timber.d("Install intent launched for ${apkFile.name}")
         } catch (e: Exception) {
             Timber.e(e, "Failed to launch install intent")
+            _updateState.value = UpdateState.ERROR
+            _errorMessage.value = "Impossible de lancer l'installation: ${e.message}"
         }
+    }
+
+    fun resetState() {
+        progressJob?.cancel()
+        _updateState.value = UpdateState.READY
+        _downloadProgress.value = 0f
+        _errorMessage.value = null
     }
 
     private fun getCurrentVersionCode(): Int {
