@@ -24,8 +24,12 @@ fun SettingsScreen(
     onNavigateToNodes: () -> Unit,
     onNavigateToBackup: () -> Unit,
     onNavigateToStealth: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onCheckForUpdate: (onResult: (Boolean) -> Unit) -> Unit = {},
+    currentVersion: String = "1.0.0"
 ) {
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var updateCheckMessage by remember { mutableStateOf<String?>(null) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -127,13 +131,51 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Update Section
+            Text("Mise à jour", color = SpyWhyColors.TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+
+            SettingsItem(
+                icon = Icons.Default.SystemUpdate,
+                title = "Vérifier les mises à jour",
+                subtitle = if (isCheckingUpdate) "Vérification en cours..."
+                           else updateCheckMessage ?: "Appuyez pour vérifier",
+                onClick = {
+                    if (!isCheckingUpdate) {
+                        isCheckingUpdate = true
+                        updateCheckMessage = null
+                        onCheckForUpdate { updateFound ->
+                            isCheckingUpdate = false
+                            updateCheckMessage = if (updateFound) {
+                                "Nouvelle version disponible !"
+                            } else {
+                                "Vous êtes à jour (v$currentVersion)"
+                            }
+                        }
+                    }
+                },
+                tint = if (updateCheckMessage?.contains("disponible") == true)
+                    SpyWhyColors.AccentOrange else SpyWhyColors.TextPrimary
+            )
+
+            if (isCheckingUpdate) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    color = SpyWhyColors.AccentOrange,
+                    trackColor = SpyWhyColors.MediumGray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // About Section
             Text("About", color = SpyWhyColors.TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
 
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "About SpyWhy",
-                subtitle = "Version 1.0.0",
+                subtitle = "Version $currentVersion",
                 onClick = { }
             )
 

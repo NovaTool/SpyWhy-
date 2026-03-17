@@ -195,6 +195,28 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    fun checkForUpdateManual(onResult: (Boolean) -> Unit) {
+        lifecycleScope.launch {
+            val update = updateManager.checkForUpdate()
+            if (update != null) {
+                Timber.d("Manual update check: update available ${update.versionName}")
+                pendingUpdate = update
+                onResult(true)
+            } else {
+                Timber.d("Manual update check: already up to date")
+                onResult(false)
+            }
+        }
+    }
+
+    fun getCurrentVersionName(): String {
+        return try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0.0"
+        } catch (e: Exception) {
+            "1.0.0"
+        }
+    }
+
     private fun promptBiometric() {
         val executor = androidx.core.content.ContextCompat.getMainExecutor(this)
         val biometricPrompt = androidx.biometric.BiometricPrompt(
@@ -544,12 +566,17 @@ fun SpyWhyNavHost(
 
         // ── Settings ───────────────────────────────────────────────────
         composable(Screen.Settings.Root.route) {
+            val activity = androidx.compose.ui.platform.LocalContext.current as? MainActivity
             SettingsScreen(
                 onNavigateToSecurity = { navController.navigate(Screen.Settings.SecuritySettings.route) },
                 onNavigateToNodes = { navController.navigate(Screen.Settings.NodeSettings.route) },
                 onNavigateToBackup = { navController.navigate(Screen.Settings.Backup.route) },
                 onNavigateToStealth = { navController.navigate(Screen.StealthWallet.route) },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onCheckForUpdate = { onResult ->
+                    activity?.checkForUpdateManual(onResult)
+                },
+                currentVersion = activity?.getCurrentVersionName() ?: "1.0.0"
             )
         }
         composable(Screen.Settings.SecuritySettings.route) {
