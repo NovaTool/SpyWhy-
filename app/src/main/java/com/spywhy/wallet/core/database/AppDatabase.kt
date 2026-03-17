@@ -3,7 +3,9 @@ package com.spywhy.wallet.core.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.spywhy.wallet.core.database.dao.AccountDao
+import com.spywhy.wallet.core.database.dao.ActiveAddressDao
 import com.spywhy.wallet.core.database.dao.ContactDao
+import com.spywhy.wallet.core.database.dao.FavoriteDao
 import com.spywhy.wallet.core.database.dao.NFTDao
 import com.spywhy.wallet.core.database.dao.PriceAlertDao
 import com.spywhy.wallet.core.database.dao.PriceCacheDao
@@ -12,7 +14,9 @@ import com.spywhy.wallet.core.database.dao.TransactionDao
 import com.spywhy.wallet.core.database.dao.UTXODao
 import com.spywhy.wallet.core.database.dao.WalletDao
 import com.spywhy.wallet.core.database.entity.AccountEntity
+import com.spywhy.wallet.core.database.entity.ActiveAddressEntity
 import com.spywhy.wallet.core.database.entity.ContactEntity
+import com.spywhy.wallet.core.database.entity.FavoriteEntity
 import com.spywhy.wallet.core.database.entity.NFTEntity
 import com.spywhy.wallet.core.database.entity.PriceAlertEntity
 import com.spywhy.wallet.core.database.entity.PriceCacheEntity
@@ -31,9 +35,11 @@ import com.spywhy.wallet.core.database.entity.WalletEntity
         NFTEntity::class,
         PriceAlertEntity::class,
         PriceCacheEntity::class,
-        ContactEntity::class
+        ContactEntity::class,
+        FavoriteEntity::class,
+        ActiveAddressEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -47,6 +53,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun priceAlertDao(): PriceAlertDao
     abstract fun priceCacheDao(): PriceCacheDao
     abstract fun contactDao(): ContactDao
+    abstract fun favoriteDao(): FavoriteDao
+    abstract fun activeAddressDao(): ActiveAddressDao
 
     companion object {
         const val DATABASE_NAME = "spywhy_wallet.db"

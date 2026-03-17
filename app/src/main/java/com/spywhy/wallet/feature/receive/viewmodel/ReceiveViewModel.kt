@@ -8,6 +8,8 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.spywhy.wallet.core.crypto.AddressGenerator
+import com.spywhy.wallet.core.database.dao.ActiveAddressDao
+import com.spywhy.wallet.core.database.entity.ActiveAddressEntity
 import com.spywhy.wallet.domain.model.Blockchain
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +33,8 @@ data class ReceiveUiState(
 
 @HiltViewModel
 class ReceiveViewModel @Inject constructor(
-    private val addressGenerator: AddressGenerator
+    private val addressGenerator: AddressGenerator,
+    private val activeAddressDao: ActiveAddressDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReceiveUiState())
@@ -39,6 +42,7 @@ class ReceiveViewModel @Inject constructor(
 
     private val addressCache = mutableMapOf<Blockchain, MutableList<String>>()
     private var seed: ByteArray? = null
+    private var currentWalletId: Long = 1L
 
     init {
         generateSeedAndLoadAddresses()
@@ -71,6 +75,19 @@ class ReceiveViewModel @Inject constructor(
                         count = 5
                     )
                     addressCache[blockchain] = addresses.toMutableList()
+
+                    // Persist all generated addresses to DB
+                    val entities = addresses.mapIndexed { index, address ->
+                        ActiveAddressEntity(
+                            walletId = currentWalletId,
+                            blockchain = blockchain.ticker,
+                            address = address,
+                            derivationIndex = index
+                        )
+                    }
+                    withContext(Dispatchers.IO) {
+                        activeAddressDao.insertAll(entities)
+                    }
                 } catch (e: Exception) {
                     // Fallback if address generation fails for a chain
                     addressCache[blockchain] = mutableListOf("Address generation error")
@@ -115,6 +132,18 @@ class ReceiveViewModel @Inject constructor(
                         addressIndex = pool.size
                     )
                     pool.add(newAddress)
+
+                    // Persist new address
+                    withContext(Dispatchers.IO) {
+                        activeAddressDao.insert(
+                            ActiveAddressEntity(
+                                walletId = currentWalletId,
+                                blockchain = blockchain.ticker,
+                                address = newAddress,
+                                derivationIndex = pool.size - 1
+                            )
+                        )
+                    }
                 } catch (_: Exception) { }
             }
         }

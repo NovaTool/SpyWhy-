@@ -32,7 +32,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             Constants.DATABASE_NAME
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
@@ -80,6 +80,12 @@ object AppModule {
 
     @Provides
     fun provideContactDao(database: AppDatabase) = database.contactDao()
+
+    @Provides
+    fun provideFavoriteDao(database: AppDatabase) = database.favoriteDao()
+
+    @Provides
+    fun provideActiveAddressDao(database: AppDatabase) = database.activeAddressDao()
 
     @Provides
     @Singleton

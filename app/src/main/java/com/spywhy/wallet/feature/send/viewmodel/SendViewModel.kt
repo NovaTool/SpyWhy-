@@ -4,6 +4,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.spywhy.wallet.core.database.dao.TransactionDao
+import com.spywhy.wallet.core.database.entity.TransactionEntity
 import com.spywhy.wallet.domain.model.Blockchain
 import com.spywhy.wallet.domain.model.UTXO
 import com.spywhy.wallet.domain.repository.FeeEstimate
@@ -67,6 +69,7 @@ data class SendUiState(
 class SendViewModel @Inject constructor(
     private val sendTransactionUseCase: SendTransactionUseCase,
     private val transactionRepository: TransactionRepository,
+    private val transactionDao: TransactionDao,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -235,6 +238,24 @@ class SendViewModel @Inject constructor(
                     selectedUtxos = utxos
                 )
                 val txHash = sendTransactionUseCase.broadcast(state.selectedBlockchain, signedTx)
+
+                // Persist transaction to local DB
+                transactionDao.insert(
+                    TransactionEntity(
+                        id = txHash,
+                        accountId = state.accountId,
+                        txHash = txHash,
+                        fromAddress = "",
+                        toAddress = state.toAddress,
+                        amount = amount.toPlainString(),
+                        fee = fee.toPlainString(),
+                        status = "PENDING",
+                        timestamp = System.currentTimeMillis(),
+                        blockchain = state.selectedBlockchain.ticker,
+                        rawHex = signedTx
+                    )
+                )
+
                 _uiState.update {
                     it.copy(txResult = TxResult.SUCCESS, txHash = txHash)
                 }
