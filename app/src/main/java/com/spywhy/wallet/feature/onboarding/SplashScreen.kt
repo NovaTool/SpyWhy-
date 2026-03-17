@@ -41,14 +41,20 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
-    onInitComplete: () -> Unit
+    onInitComplete: () -> Unit,
+    onWalletExists: (() -> Unit)? = null,
+    hasExistingWallet: Boolean = false
 ) {
     var visible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         visible = true
         delay(2500L)
-        onInitComplete()
+        if (hasExistingWallet && onWalletExists != null) {
+            onWalletExists()
+        } else {
+            onInitComplete()
+        }
     }
 
     // Logo pulse animation

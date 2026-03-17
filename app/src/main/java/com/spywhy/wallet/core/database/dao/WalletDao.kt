@@ -29,4 +29,7 @@ interface WalletDao {
 
     @Query("SELECT * FROM wallets WHERE is_hidden = 1 ORDER BY created_at DESC")
     fun getHidden(): Flow<List<WalletEntity>>
+
+    @Query("SELECT COUNT(*) FROM wallets")
+    suspend fun getWalletCount(): Int
 }

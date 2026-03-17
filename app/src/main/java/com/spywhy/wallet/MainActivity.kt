@@ -31,9 +31,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import com.spywhy.wallet.core.database.dao.WalletDao
 import com.spywhy.wallet.core.update.UpdateDialog
 import com.spywhy.wallet.core.update.UpdateInfo
 import com.spywhy.wallet.core.update.UpdateManager
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -110,9 +112,13 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var updateManager: UpdateManager
 
+    @Inject
+    lateinit var walletDao: WalletDao
+
     private var isLocked by mutableStateOf(false)
     private var biometricEnabled by mutableStateOf(true)
     private var pendingUpdate by mutableStateOf<UpdateInfo?>(null)
+    private var hasExistingWallet by mutableStateOf(false)
 
     // ── Lifecycle ───────────────────────────────────────────────────────
 
@@ -126,6 +132,13 @@ class MainActivity : FragmentActivity() {
         )
 
         enableEdgeToEdge()
+
+        // Check if a wallet already exists
+        lifecycleScope.launch {
+            val count = walletDao.getWalletCount()
+            hasExistingWallet = count > 0
+            Timber.d("Wallet count on startup: $count")
+        }
 
         // Check for updates on launch
         lifecycleScope.launch {
@@ -142,6 +155,7 @@ class MainActivity : FragmentActivity() {
                 Box(modifier = Modifier.fillMaxSize()) {
                     SpyWhyNavHost(
                         navController = navController,
+                        hasExistingWallet = hasExistingWallet,
                         modifier = Modifier.fillMaxSize()
                     )
                     if (isLocked) {
@@ -224,6 +238,7 @@ class MainActivity : FragmentActivity() {
 @Composable
 fun SpyWhyNavHost(
     navController: NavHostController,
+    hasExistingWallet: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     NavHost(
@@ -235,8 +250,14 @@ fun SpyWhyNavHost(
         // ── Onboarding ──────────────────────────────────────────────────
         composable(Screen.Onboarding.Splash.route) {
             SplashScreen(
+                hasExistingWallet = hasExistingWallet,
                 onInitComplete = {
                     navController.navigate(Screen.Onboarding.Welcome.route) {
+                        popUpTo(Screen.Onboarding.Splash.route) { inclusive = true }
+                    }
+                },
+                onWalletExists = {
+                    navController.navigate(Screen.Main.Dashboard.createRoute()) {
                         popUpTo(Screen.Onboarding.Splash.route) { inclusive = true }
                     }
                 }
