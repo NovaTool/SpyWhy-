@@ -1,6 +1,6 @@
 {
   "versionCode": 2,
   "versionName": "1.0.1",
-  "apkUrl": "https://github.com/NovaTool/SpyWhy-/raw/main/release/SpyWhy-v1.0.0-release.apk",
-  "changelog": "Version initiale de SpyWhy Wallet"
+  "apkUrl": "https://github.com/NovaTool/SpyWhy-/raw/main/release/SpyWhy-v1.0.1-release.apk",
+  "changelog": "Ajout de la vérification manuelle des mises à jour dans les paramètres"
 }
