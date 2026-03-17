@@ -102,13 +102,32 @@ fun SpyWhyNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Onboarding.Welcome.route,
+        startDestination = Screen.Onboarding.Splash.route,
         modifier = modifier,
     ) {
 
         // ── Onboarding ──────────────────────────────────────────────────
+        composable(Screen.Onboarding.Splash.route) {
+            com.spywhy.wallet.feature.onboarding.SplashScreen(
+                onInitComplete = {
+                    navController.navigate(Screen.Onboarding.Welcome.route) {
+                        popUpTo(Screen.Onboarding.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Screen.Onboarding.Welcome.route) {
-            PlaceholderScreen("Welcome")
+            com.spywhy.wallet.feature.onboarding.WelcomeScreen(
+                onCreateWallet = {
+                    navController.navigate(Screen.Onboarding.CreateWallet.route)
+                },
+                onImportWallet = {
+                    navController.navigate(Screen.Onboarding.ImportSeed.route)
+                },
+                onWatchOnly = {
+                    navController.navigate(Screen.Main.Dashboard.route)
+                }
+            )
         }
         composable(Screen.Onboarding.CreateWallet.route) {
             PlaceholderScreen("Create Wallet")

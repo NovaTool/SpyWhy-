@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Hexagonal shield outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="2.5"
+        android:strokeLineJoin="round"
+        android:pathData="M60,8 L104,30 L104,74 L60,112 L16,74 L16,30 Z" />
+
+    <!-- Inner hexagonal shield fill (subtle) -->
+    <path
+        android:fillColor="#1A1A1A"
+        android:pathData="M60,14 L99,33 L99,71 L60,106 L21,71 L21,33 Z" />
+
+    <!-- Eye shape - outer -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF9800"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M30,60 Q45,38 60,38 Q75,38 90,60 Q75,82 60,82 Q45,82 30,60 Z" />
+
+    <!-- Eye iris circle -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M60,48 A12,12 0,1,1 60,72 A12,12 0,1,1 60,48 Z" />
+
+    <!-- Eye pupil -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M60,53 A7,7 0,1,1 60,67 A7,7 0,1,1 60,53 Z" />
+
+    <!-- Eye glint -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M55,56 A3,3 0,1,1 55,62 A3,3 0,1,1 55,56 Z" />
+
+    <!-- Top keyhole line (security motif) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M60,14 L60,34" />
+
+    <!-- Bottom lock line -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M60,86 L60,106" />
+</vector>

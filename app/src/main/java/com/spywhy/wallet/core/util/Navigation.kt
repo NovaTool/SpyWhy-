@@ -8,6 +8,7 @@ sealed class Screen(val route: String) {
 
     // ── Onboarding ──────────────────────────────────────────────────────
     sealed class Onboarding(route: String) : Screen(route) {
+        data object Splash : Onboarding("onboarding/splash")
         data object Welcome : Onboarding("onboarding/welcome")
         data object CreateWallet : Onboarding("onboarding/create_wallet")
         data object ImportSeed : Onboarding("onboarding/import_seed")

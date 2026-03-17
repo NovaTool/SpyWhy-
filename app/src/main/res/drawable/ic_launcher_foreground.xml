@@ -5,16 +5,37 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <group
-        android:translateX="27"
-        android:translateY="27">
+        android:translateX="18"
+        android:translateY="14">
+        <!-- Hexagonal shield -->
+        <path
+            android:fillColor="#1E1E1E"
+            android:strokeColor="#E0E0E0"
+            android:strokeWidth="2"
+            android:strokeLineJoin="round"
+            android:pathData="M36,0 L68,16 L68,56 L36,80 L4,56 L4,16 Z" />
+
+        <!-- Eye shape outer -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FF9800"
+            android:strokeWidth="2.2"
+            android:strokeLineCap="round"
+            android:pathData="M14,40 Q25,24 36,24 Q47,24 58,40 Q47,56 36,56 Q25,56 14,40 Z" />
+
+        <!-- Iris -->
         <path
             android:fillColor="#FF9800"
-            android:pathData="M27,0C41.9,0 54,12.1 54,27C54,41.9 41.9,54 27,54C12.1,54 0,41.9 0,27C0,12.1 12.1,0 27,0Z" />
+            android:pathData="M36,31 A9,9 0,1,1 36,49 A9,9 0,1,1 36,31 Z" />
+
+        <!-- Pupil -->
         <path
-            android:strokeWidth="3.5"
-            android:strokeColor="#000000"
-            android:strokeLineCap="round"
-            android:fillColor="#00000000"
-            android:pathData="M33.5,18.5C33.5,15.5 31,13 27,13C23,13 20.5,15.5 20.5,18.5C20.5,21.5 22.5,23 27,24.5C31.5,26 33.5,28 33.5,31.5C33.5,35 31,37.5 27,37.5C23,37.5 20.5,35 20.5,31.5" />
+            android:fillColor="#000000"
+            android:pathData="M36,35 A5,5 0,1,1 36,45 A5,5 0,1,1 36,35 Z" />
+
+        <!-- Glint -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M33,37 A2,2 0,1,1 33,41 A2,2 0,1,1 33,37 Z" />
     </group>
 </vector>
