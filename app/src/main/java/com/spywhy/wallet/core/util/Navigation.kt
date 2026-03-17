@@ -75,6 +75,13 @@ sealed class Screen(val route: String) {
         data object SecuritySettings : Settings("settings/security")
         data object NodeSettings : Settings("settings/nodes")
         data object Backup : Settings("settings/backup")
+        data object ExportPrivateKeys : Settings("settings/export_keys")
+        data object MessageSigning : Settings("settings/message_signing")
+        data object DefaultCurrency : Settings("settings/default_currency")
+        data object Notifications : Settings("settings/notifications")
+        data object Widgets : Settings("settings/widgets")
+        data object PanicMode : Settings("settings/panic_mode")
+        data object About : Settings("settings/about")
     }
 
     // ── Advanced / Power-user screens ───────────────────────────────────

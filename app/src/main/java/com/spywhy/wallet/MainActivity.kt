@@ -74,10 +74,17 @@ import com.spywhy.wallet.feature.send.CoinControlScreen
 import com.spywhy.wallet.feature.send.ConfirmTxScreen
 import com.spywhy.wallet.feature.send.FeeSelectionScreen
 import com.spywhy.wallet.feature.send.SendScreen
+import com.spywhy.wallet.feature.settings.AboutScreen
 import com.spywhy.wallet.feature.settings.BackupScreen
+import com.spywhy.wallet.feature.settings.DefaultCurrencyScreen
+import com.spywhy.wallet.feature.settings.ExportPrivateKeysScreen
+import com.spywhy.wallet.feature.settings.MessageSigningScreen
 import com.spywhy.wallet.feature.settings.NodeSettingsScreen
+import com.spywhy.wallet.feature.settings.NotificationsScreen
+import com.spywhy.wallet.feature.settings.PanicModeScreen
 import com.spywhy.wallet.feature.settings.SecuritySettingsScreen
 import com.spywhy.wallet.feature.settings.SettingsScreen
+import com.spywhy.wallet.feature.settings.WidgetsScreen
 import com.spywhy.wallet.feature.stealth.StealthWalletScreen
 import com.spywhy.wallet.feature.wallet.AddressScreen
 import com.spywhy.wallet.feature.wallet.CoinDetailScreen
@@ -572,6 +579,13 @@ fun SpyWhyNavHost(
                 onNavigateToNodes = { navController.navigate(Screen.Settings.NodeSettings.route) },
                 onNavigateToBackup = { navController.navigate(Screen.Settings.Backup.route) },
                 onNavigateToStealth = { navController.navigate(Screen.StealthWallet.route) },
+                onNavigateToExportKeys = { navController.navigate(Screen.Settings.ExportPrivateKeys.route) },
+                onNavigateToMessageSigning = { navController.navigate(Screen.Settings.MessageSigning.route) },
+                onNavigateToDefaultCurrency = { navController.navigate(Screen.Settings.DefaultCurrency.route) },
+                onNavigateToNotifications = { navController.navigate(Screen.Settings.Notifications.route) },
+                onNavigateToWidgets = { navController.navigate(Screen.Settings.Widgets.route) },
+                onNavigateToPanicMode = { navController.navigate(Screen.Settings.PanicMode.route) },
+                onNavigateToAbout = { navController.navigate(Screen.Settings.About.route) },
                 onNavigateBack = { navController.popBackStack() },
                 onCheckForUpdate = { onResult ->
                     activity?.checkForUpdateManual(onResult)
@@ -591,6 +605,43 @@ fun SpyWhyNavHost(
         }
         composable(Screen.Settings.Backup.route) {
             BackupScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Settings.ExportPrivateKeys.route) {
+            ExportPrivateKeysScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Settings.MessageSigning.route) {
+            MessageSigningScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Settings.DefaultCurrency.route) {
+            DefaultCurrencyScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Settings.Notifications.route) {
+            NotificationsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Settings.Widgets.route) {
+            WidgetsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Settings.PanicMode.route) {
+            PanicModeScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Settings.About.route) {
+            val activity = androidx.compose.ui.platform.LocalContext.current as? MainActivity
+            AboutScreen(
+                currentVersion = activity?.getCurrentVersionName() ?: "1.0.0",
                 onNavigateBack = { navController.popBackStack() }
             )
         }

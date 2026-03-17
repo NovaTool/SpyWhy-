@@ -24,6 +24,13 @@ fun SettingsScreen(
     onNavigateToNodes: () -> Unit,
     onNavigateToBackup: () -> Unit,
     onNavigateToStealth: () -> Unit,
+    onNavigateToExportKeys: () -> Unit,
+    onNavigateToMessageSigning: () -> Unit,
+    onNavigateToDefaultCurrency: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
+    onNavigateToWidgets: () -> Unit,
+    onNavigateToPanicMode: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     onNavigateBack: () -> Unit,
     onCheckForUpdate: (onResult: (Boolean) -> Unit) -> Unit = {},
     currentVersion: String = "1.0.0"
@@ -71,7 +78,7 @@ fun SettingsScreen(
                 icon = Icons.Default.Warning,
                 title = "Panic Mode",
                 subtitle = "Emergency key deletion",
-                onClick = { },
+                onClick = onNavigateToPanicMode,
                 tint = SpyWhyColors.AccentRed
             )
 
@@ -96,13 +103,13 @@ fun SettingsScreen(
                 icon = Icons.Default.Key,
                 title = "Export Private Keys",
                 subtitle = "Export individual private keys",
-                onClick = { }
+                onClick = onNavigateToExportKeys
             )
             SettingsItem(
                 icon = Icons.Default.Draw,
                 title = "Message Signing",
                 subtitle = "Sign messages with your keys",
-                onClick = { }
+                onClick = onNavigateToMessageSigning
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -114,19 +121,19 @@ fun SettingsScreen(
                 icon = Icons.Default.CurrencyExchange,
                 title = "Default Currency",
                 subtitle = "USD",
-                onClick = { }
+                onClick = onNavigateToDefaultCurrency
             )
             SettingsItem(
                 icon = Icons.Default.Notifications,
                 title = "Notifications",
                 subtitle = "Price alerts, receive notifications",
-                onClick = { }
+                onClick = onNavigateToNotifications
             )
             SettingsItem(
                 icon = Icons.Default.Widgets,
                 title = "Widgets",
                 subtitle = "Home screen widgets",
-                onClick = { }
+                onClick = onNavigateToWidgets
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -176,7 +183,7 @@ fun SettingsScreen(
                 icon = Icons.Default.Info,
                 title = "About SpyWhy",
                 subtitle = "Version $currentVersion",
-                onClick = { }
+                onClick = onNavigateToAbout
             )
 
             Spacer(modifier = Modifier.height(32.dp))
